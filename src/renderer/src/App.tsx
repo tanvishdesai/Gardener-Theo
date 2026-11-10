@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Scene } from "./garden/Scene";
+import { IsoGarden } from "./iso/IsoGarden";
 import { BedPanel } from "./panels/BedPanel";
 import { PlantPanel } from "./panels/PlantPanel";
 import { SowDialog } from "./panels/SowDialog";
@@ -57,7 +57,7 @@ export function App() {
     <div className={`app ${selection ? "app--panel" : ""}`}>
       <TopBar onAddBed={addBed} />
       <main className="main">
-        <Scene onAddBed={addBed} />
+        <IsoGarden onAddBed={addBed} />
         {empty && (
           <div className="welcome">
             <h1>Your garden is empty</h1>

@@ -2,7 +2,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ACTIVITY_HINT, MODE_LABEL, statusLabel } from "../../../shared/garden";
 import type { Entry, PermissionMode, Plant } from "../../../shared/types";
-import { SPECIES_NAME, SPECIES_STYLE } from "../garden/Plant";
+import { SPECIES_NAME, SPECIES_STYLE } from "../iso/palette";
 import { attempt, garden, select, useGarden } from "../store";
 import { AskCard } from "./AskCard";
 import { Markdown } from "./Markdown";

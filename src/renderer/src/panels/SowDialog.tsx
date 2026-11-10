@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MODE_LABEL } from "../../../shared/garden";
 import { SPECIES, type PermissionMode, type Species } from "../../../shared/types";
-import { SPECIES_NAME, SPECIES_STYLE } from "../garden/Plant";
+import { SPECIES_NAME, SPECIES_STYLE } from "../iso/palette";
 import { attempt, garden, select, setState, useGarden } from "../store";
 
 const MODELS = [

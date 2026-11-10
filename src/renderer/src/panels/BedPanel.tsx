@@ -1,7 +1,7 @@
 // A bed's soil report: the platform work that decides how well every future plant grows.
 import { CHORES, MOOD_LABEL, bedMood, soilChecks, statusLabel } from "../../../shared/garden";
 import type { Bed } from "../../../shared/types";
-import { SPECIES_STYLE } from "../garden/Plant";
+import { SPECIES_STYLE } from "../iso/palette";
 import { attempt, garden, plantsInBed, select, setState, useGarden } from "../store";
 
 export function BedPanel({ bed }: { bed: Bed }) {

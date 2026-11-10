@@ -24,10 +24,11 @@ export function TopBar({ onAddBed }: { onAddBed(): void }) {
   return (
     <header className="topbar">
       <div className="brand">
-        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden>
-          <path d="M12 22 C12 14 12 10 12 8" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" fill="none" />
-          <path d="M12 12 C6 12 3 8 3 3 C9 3 12 7 12 12Z" fill="var(--accent)" />
-          <path d="M12 9 C16 9 21 7 21 2 C15 2 12 5 12 9Z" fill="var(--accent-2)" />
+        <svg width="24" height="24" viewBox="0 0 12 12" shapeRendering="crispEdges" aria-hidden>
+          <path fill="#2b2233" d="M5 4h2v8H5zM1 2h3v1H1zM0 3h1v2H0zM1 5h3v1H1zM4 3h1v2H4zM8 1h3v1H8zM11 2h1v2h-1zM8 4h3v1H8zM7 2h1v2H7z" />
+          <path fill="#6cc45a" d="M1 3h3v2H1zM8 2h3v2H8z" />
+          <path fill="#3f8f4f" d="M6 4h1v8H6z" />
+          <path fill="#5aa848" d="M5 4h1v8H5z" />
         </svg>
         <span>Gardener</span>
         {demo && <span className="chip chip--demo" title="Simulated agents. Run the desktop app to grow real ones.">demo garden</span>}

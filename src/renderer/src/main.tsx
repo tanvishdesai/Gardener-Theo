@@ -4,6 +4,10 @@ import type { GardenApi } from "../../shared/types";
 import { App } from "./App";
 import { createDemo } from "./demo";
 import { connect } from "./store";
+import "@fontsource/pixelify-sans/400.css";
+import "@fontsource/pixelify-sans/600.css";
+import "@fontsource/silkscreen/400.css";
+import "@fontsource/vt323/400.css";
 import "./styles.css";
 
 declare global {

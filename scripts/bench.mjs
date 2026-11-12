@@ -147,12 +147,17 @@ try {
   console.log(JSON.stringify(result, null, 2));
 
   let code = 0;
+  if (result.p95 > 16) {
+    console.error(`p95 ${result.p95} ms is over the 16 ms budget`);
+    code = 1;
+  }
   if (!flag("baseline") && existsSync("bench/baseline.json")) {
     const base = JSON.parse(readFileSync("bench/baseline.json", "utf8"));
     console.log(`\np95 ${result.p95} ms vs baseline ${base.p95} ms; p50 ${result.p50} vs ${base.p50}; idle ${result.idleFps} fps vs ${base.idleFps}`);
     if (result.p95 > base.p95 * 1.15 && result.p95 - base.p95 > 1) {
       console.error(`p95 regressed more than 15% (${base.p95} -> ${result.p95} ms)`);
-      code = 1;
+      // The baseline is recorded on a dev machine; CI runners differ, so there it's a warning, not a gate.
+      if (!process.env.CI) code = 1;
     }
   }
   process.exitCode = code;

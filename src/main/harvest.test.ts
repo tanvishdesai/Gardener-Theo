@@ -9,6 +9,7 @@ import { GardenStore } from "./store";
 
 function rmRepo(dir: string) {
   for (const e of readdirSync(dir, { recursive: true, withFileTypes: true })) {
+    if (!e.isFile()) continue; // 0o666 on a directory drops its x bit, so POSIX rm then fails with EACCES
     try {
       chmodSync(join(e.parentPath, e.name), 0o666);
     } catch {

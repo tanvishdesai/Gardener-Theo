@@ -65,19 +65,40 @@ Drag to look around, scroll to pan, Ctrl + scroll (or the + / − buttons) to zo
 
 ![Approving a plan at dusk](docs/plan.png)
 
+## Working in the garden
+
+- **Pots (worktrees).** In a git repo, every new plant grows in its own pot: a git worktree on its own branch (`garden/<name>-<hex>`), kept under Gardener's data folder. Parallel agents never edit the same files, and your checkout stays yours. Choose **In the bed** when sowing to share the working tree instead. An optional `gardener.json` at the repo root prepares each pot: `{ "pot": { "copy": [".env"], "setup": "npm ci" } }`.
+- **Rings (checkpoints).** Every turn is a growth ring with a git snapshot before and after, including changes made by shell commands. The **Rings** tab shows each ring's diff (unified or split, per file). From any ring you can:
+  - **Prune back to here:** restore the files and continue the conversation from that point.
+  - **Grow a new branch from here:** start a new pot from that ring.
+  - **Tie a tag:** select diff lines and add a note; the note and the lines go out with your next message.
+- **Harvest.** The **Harvest** tab walks through four steps:
+  - review the changes;
+  - draft a commit message in the repo's style;
+  - commit (never straight onto the default branch) and push;
+  - open a pull request through `gh`, or GitHub's compare page if `gh` isn't logged in.
+
+  The PR's checks then show on the plant's stake.
+- **Stakes.** Give a bed a check command, detected from the repo (`npm test`, `npm run typecheck`, `pytest`, `cargo test`, …). It runs after every turn that changed files. A plant whose check fails leans away from its stake, with **Ask the plant to fix it** one click away.
+- **Volunteers.** Claude Code sessions you start in a terminal appear as wild flowers, read live from their transcripts. An optional hook (Settings → Terminal sessions) makes them update instantly and turn amber when they wait for your permission. It merges into `~/.claude/settings.json` and removes cleanly.
+- **Seed Catalogue and search.** Only active plants stand in the ground. Every plant is in the Seed Catalogue (`\`), a list you can filter and walk with the keyboard. `Ctrl+K` searches plant names, branches and the text of every journal.
+- **Almanac.** Cost and tokens per day, bed, model and plant, read from Claude Code's own transcripts. That covers your whole history, not just Gardener's plants. Costs are Claude Code's estimates.
+- **Memory-aware.** How many agents run at once is decided by this machine's free memory, not a fixed number. Extra messages wait for a free pot, and idle plants rest until you message them again.
+
 ## Running it
 
-You need Node 22+ and Claude Code logged in on this machine. Gardener runs agents through the [Claude Agent SDK](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk), which uses the bundled Claude Code and whatever account Claude Code is logged into. If you have never logged in, run `claude` once in a terminal and log in with your Claude subscription. If `ANTHROPIC_API_KEY` is set in your environment, Claude Code will use that instead.
+You need **Node 22.12 or newer**, git, and Claude Code logged in on this machine. Gardener runs agents through the [Claude Agent SDK](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk), which uses the bundled Claude Code and whatever account Claude Code is logged into. If you have never logged in, run `claude` once in a terminal and log in with your Claude subscription. If `ANTHROPIC_API_KEY` is set in your environment, Claude Code uses that instead.
+
+The [GitHub CLI](https://cli.github.com) is optional; run `gh auth login` if you want to open pull requests from Gardener.
 
 ```bash
 npm install
-```
-
-```bash
 npm run dev
 ```
 
-Then click **Break new ground**, pick a repo folder, and **Sow an agent**.
+The first run checks git, Claude Code and `gh`. It offers to import your existing Claude Code sessions and to watch terminal sessions. Then click **Break new ground**, pick a repo folder, and **Sow** an agent.
+
+Gardener keeps its data (a SQLite database, logs and pots) in the app's data folder (`%APPDATA%\Gardener` on Windows). A garden from the first version is migrated automatically and kept as `*.v1.bak`.
 
 To preview the interface in a browser with simulated agents (no Electron, no Claude, nothing runs):
 
@@ -85,62 +106,95 @@ To preview the interface in a browser with simulated agents (no Electron, no Cla
 npm run demo
 ```
 
-Then open http://localhost:5199. Add `?phase=night` (or `dawn`, `dusk`) to the URL to see other times of day.
+Then open http://localhost:5199. Add `?phase=night` (or `dawn`, `dusk`) for other times of day, or `?beds=100&plants=1000&live=30` for a large synthetic garden.
 
 ### Keyboard
 
-- `s` sow an agent (in the selected bed)
-- `n` jump to the next plant that needs you
-- `Esc` close the panel
-- In the composer: `Enter` sends, `Shift+Enter` adds a new line
+| Key | Does |
+| --- | --- |
+| `s` | Sow an agent (in the selected bed) |
+| `n` / `Shift+N` | Next / previous plant that needs you (oldest wait first) |
+| `[` / `]` | Previous / next bed |
+| `\` | Open or close the Seed Catalogue (`j` / `k` move, `Enter` opens) |
+| `Ctrl+K` | Search plants, beds, branches and journals; run actions |
+| `j` / `k` | Next / previous file in a diff |
+| `Esc` | Close the top-most window or panel |
+| `Enter` / `Shift+Enter` | In the message box: send / new line |
 
 ## How it works
 
 ```
 src/
-  shared/    types and garden vocabulary used by both processes (tool -> activity, chores, soil checks)
-  main/      Electron main process
-    agents.ts  one Agent SDK query() per plant, streaming input; maps SDK messages to plant state
-    store.ts   beds, plants and per-plant journals, persisted as JSON in the app's userData folder
-    soil.ts    git status + repo hygiene checks
-  preload/   exposes a small typed API (window.gardener) to the renderer
-  renderer/  React UI
-    iso/       the isometric pixel-art garden, drawn on a canvas
-      world.ts   tile layout (allotments, paths, greenhouse) and the gardener's pathfinding
-      paint.ts   tiles, planters, plants, effects, bubbles, sky; every shape filled pixel by pixel
-      sprites.ts hand-placed pixel maps (gardener, critters, flower heads, bubble icons)
-      raster.ts  pixel-exact fills (canvas paths anti-alias, so nothing here uses them)
-    demo.ts    a scripted fake garden that speaks the same API, for `npm run demo`
+  shared/      types (the GardenApi contract) and garden vocabulary used by both processes
+  main/        Electron main process
+    index.ts         IPC handlers and service wiring; one instance per data folder
+    events.ts        coalesces events into at most one renderer message every 17 ms
+    store.ts, db.ts  SQLite (node:sqlite, WAL, FTS5): beds, plants, paged journals, rings, settings
+    agents.ts        one Agent SDK session per plant: plant state, pots, rings, prune and fork
+    pool.ts          memory-based limit on live Claude processes
+    git.ts           every git/gh call, queued: worktrees, snapshots, diffs, commit, push, PRs
+    harvest.ts       commit message, commit, push, pull request, PR watcher
+    transcript.ts, history.ts  Claude Code transcript parsing and history import
+    volunteers.ts    terminal sessions (transcript tailing + optional hook server)
+    usage.ts         the Almanac: usage and cost from transcripts
+    soil.ts, soilScheduler.ts, stakes.ts  repo hygiene, scheduled soil checks, stake runs
+    logger.ts        rotating logs and the diagnostics report
+  preload/     exposes the typed GardenApi as window.gardener
+  renderer/    React UI
+    store.ts         renderer state, updated incrementally from batched events
+    panels/          plant and bed panels, journal, Seed Catalogue, palette, rings, diffs, harvest, Almanac, settings
+    iso/             the isometric pixel-art garden on a canvas (tiled ground cache, culling, map view)
+    demo.ts          a scripted fake garden that speaks the same API, for `npm run demo`
+docs/v2/       the V2 plan (decisions, budgets, deviations), signing and release guides
 ```
 
-- Each plant is a long-lived Claude Code session (`query()` with an async-iterable prompt), so follow-ups go to the same session. The session id is saved, so after restarting Gardener the next message resumes the conversation.
-- Permissions, `AskUserQuestion` and plan approval (`ExitPlanMode`) all arrive through `canUseTool` and appear as cards in the plant's panel. Replying in the composer while a card is open counts as a "no, do this instead".
-- Permission modes are shown as: **Ask me** (`default`), **Trust edits** (`acceptEdits`), **Plan first** (`plan`), **Wild growth** (`bypassPermissions`).
-- Your settings, `CLAUDE.md` files, MCP servers and hooks load the same way they do in the CLI.
-- When a plant needs you and the window is not focused, you get a system notification, and the dock badge counts plants needing you.
-- The garden redraws at 8 frames a second (30 while the camera or gardener moves), stops drawing when the window is hidden, and holds still with the system's reduced-motion setting. The ground is drawn once into a cached layer.
+- **Sessions.** Each plant is a long-lived Claude Code session (`query()` with an async-iterable prompt), so follow-ups go to the same session. The session id is saved, so after a restart the next message resumes the conversation.
+- **Asks.** Permissions, `AskUserQuestion` and plan approval (`ExitPlanMode`) arrive through `canUseTool` and appear as cards in the plant's panel. Replying in the message box while a card is open counts as "no, do this instead".
+- **Permission modes** are shown as **Ask me** (`default`), **Trust edits** (`acceptEdits`), **Plan first** (`plan`) and **Wild growth** (`bypassPermissions`).
+- **Your configuration** (settings, `CLAUDE.md` files, MCP servers, hooks) loads the same way it does in the CLI. In a pot, project settings come from the repo root (`projectConfigRoot`) while the agent works in the worktree.
+- **Notifications.** When a plant needs you and the window is not focused, you get a system notification, and the taskbar badge counts plants needing you.
+- **Drawing.** The garden draws only what is on screen, from cached tiles and sprites. It stops redrawing when nothing moves, pauses when the window is hidden, and holds still with the system's reduced-motion setting.
+
+### Budgets
+
+Measured on Windows with 100 beds, 1,000 plants and 30 live agents:
+
+| Budget | Target | Measured |
+| --- | --- | --- |
+| Frame time, p95 | ≤ 16 ms | about 3 ms |
+| Cold start | ≤ 1.5 s | about 0.9 s |
+| Main-thread stalls under load, p99 | ≤ 50 ms | about 27 ms |
+
+See [docs/v2/PLAN.md](docs/v2/PLAN.md) for every budget and design decision.
 
 ## Development
 
 ```bash
-npm run typecheck
+npm run typecheck    # TypeScript
+npm test             # unit and integration tests, run on Electron's own Node (node:sqlite + FTS5)
+npm run build        # main, preload and renderer bundles in out/
 ```
 
-```bash
-npm test
-```
+Run all three before calling a change done. Also available:
 
-```bash
-npm run build
-```
+| Command | What it checks |
+| --- | --- |
+| `node scripts/e2e.mjs` | Smoke test of the real desktop app on temp data (after `npm run build`) |
+| `npm run bench` | Frame time with a 1,000-plant garden in headless Edge (budget p95 ≤ 16 ms) |
+| `npm run coldstart` | Cold start to an interactive 1,000-plant garden, after `npm run build` (budget ≤ 1.5 s) |
+| `npm run soak` | 30 streaming agents: main-thread stalls p99 ≤ 50 ms and at most 60 renderer messages a second (`SOAK_SECONDS=600` runs it for 10 minutes) |
+| `npm run dist:dir` | Unsigned unpacked Windows build in `dist/win-unpacked` |
+| `npm run dist` | Signed Windows installer (needs the signing setup in [docs/v2/SIGNING.md](docs/v2/SIGNING.md)) |
 
-Set `GARDENER_DEBUG=1` to print each Claude Code process's stderr.
+Environment variables:
 
-## V2
+- `GARDENER_DEBUG=1` prints each Claude Code process's stderr.
+- `GARDENER_USER_DATA=<folder>` runs Gardener on a separate data folder.
 
-See [docs/v2/PLAN.md](docs/v2/PLAN.md): per-plant worktrees, growth rings with diffs and prune-back, commit/push/PR, SQLite storage, a garden that stays fast at 1,000 plants, the Seed Catalogue (`\`) and Ctrl+K palette, terminal sessions as volunteers, the Almanac (usage and cost), and stakes (a check command run after each turn).
+CI (`.github/workflows/ci.yml`) gates on Windows; macOS and Linux run the typecheck and tests without gating.
 
 ## Not done yet
 
-- A signed installer: `npm run dist` builds it, but needs the OV code-signing setup in [docs/v2/SIGNING.md](docs/v2/SIGNING.md). `npm run dist:dir` makes an unsigned unpacked build.
-- macOS and Linux packages (V2.0 ships on Windows first).
+- **A signed release.** `npm run dist` is ready but needs the OV code-signing certificate described in [docs/v2/SIGNING.md](docs/v2/SIGNING.md). Until then, `npm run dist:dir` makes an unsigned build.
+- **macOS and Linux packages.** V2.0 ships on Windows first; the code stays cross-platform.
+- **Pull requests on hosts other than GitHub.** Gardener stops after the push there.

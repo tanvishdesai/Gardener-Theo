@@ -1,5 +1,5 @@
 // Just enough markdown for agent replies: fences, headings, lists, inline code, bold, links as text.
-import { Fragment, type ReactNode } from "react";
+import { Fragment, memo, type ReactNode } from "react";
 
 function inline(text: string): ReactNode[] {
   const out: ReactNode[] = [];
@@ -17,7 +17,8 @@ function inline(text: string): ReactNode[] {
   return out;
 }
 
-export function Markdown({ text }: { text: string }) {
+/** Memoized on `text`: an entry's markdown is parsed once per version of the entry. */
+export const Markdown = memo(function Markdown({ text }: { text: string }) {
   const blocks: ReactNode[] = [];
   const lines = text.split("\n");
   let i = 0;
@@ -70,4 +71,4 @@ export function Markdown({ text }: { text: string }) {
     );
   }
   return <div className="md">{blocks}</div>;
-}
+});

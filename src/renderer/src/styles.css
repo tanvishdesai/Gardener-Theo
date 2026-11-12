@@ -1449,3 +1449,680 @@ html.paused *::after {
     padding: 3px 7px;
   }
 }
+
+/* ===================== V2: dense mode, palette, plant + bed panel additions ===================== */
+
+/* The same pixel frame for the new chrome. */
+.tab,
+.catalogue__search,
+.palette,
+.palette__input,
+.stake-row select,
+.stake-row input,
+.pin-btn,
+.tab-placeholder {
+  border: none;
+  border-radius: 0;
+  box-shadow:
+    -2px 0 0 0 var(--ink),
+    2px 0 0 0 var(--ink),
+    0 -2px 0 0 var(--ink),
+    0 2px 0 0 var(--ink),
+    inset 2px 2px 0 0 var(--hi),
+    inset -2px -2px 0 0 var(--lo);
+}
+
+/* ---------- top bar additions ---------- */
+
+.topbar__toggle {
+  padding: 3px 9px;
+  font-size: 13px;
+}
+
+.topbar__toggle.is-on {
+  background: var(--accent-light);
+}
+
+.topbar__info {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.topbar__info .chip {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-app-region: no-drag;
+  cursor: default;
+}
+
+.chip--weather.chip--clouds {
+  background: #d9dde6;
+}
+
+.chip--weather.chip--rain {
+  background: #9cc4ea;
+}
+
+.tally {
+  margin: 0 0 0 auto;
+}
+
+.topbar__actions {
+  margin-left: auto;
+  gap: 8px;
+}
+
+/* ---------- plant panel additions ---------- */
+
+.pin-btn {
+  flex: none;
+  margin: 2px;
+  padding: 2px 8px;
+  background: var(--paper-2);
+  color: var(--ink);
+  font-family: var(--font-caps);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.pin-btn.is-on {
+  background: var(--gold-bg);
+}
+
+.plot {
+  padding: 8px 14px 0;
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plot__kind {
+  font-family: var(--font-caps);
+  font-size: 11px;
+  color: var(--ink);
+}
+
+.status--queued {
+  background: var(--paper-3);
+}
+
+.status--queued .status__dot {
+  background: var(--amber);
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  padding: 6px 14px 0;
+}
+
+.badges .chip {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chip--volunteer {
+  background: var(--paper);
+  outline: 2px dashed var(--ink-2);
+  outline-offset: -4px;
+}
+
+.chip--passing {
+  background: var(--accent-light);
+}
+
+.chip--running {
+  background: var(--amber-bg);
+}
+
+.chip--failing {
+  background: var(--wilt-bg);
+}
+
+a.chip {
+  text-decoration: none;
+}
+
+a.chip:hover {
+  text-decoration: underline;
+}
+
+.add {
+  color: var(--accent);
+}
+
+.del {
+  color: var(--wilt);
+}
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  padding: 8px 14px 6px;
+  border-top: 4px solid var(--ink);
+  background: var(--paper-2);
+}
+
+.tab {
+  margin: 2px;
+  padding: 2px 12px;
+  background: var(--paper-3);
+  color: var(--ink);
+  font-family: var(--font-caps);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.tab.is-on {
+  background: var(--paper);
+}
+
+.tabpanel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tabpanel > .journal {
+  border-top: 2px solid var(--ink);
+}
+
+.tab-placeholder {
+  margin: 14px;
+  padding: 12px 14px;
+  background: var(--paper-2);
+}
+
+.tagchips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  margin-bottom: 8px;
+}
+
+.chip--tag {
+  background: var(--gold-bg);
+  font-family: var(--mono);
+  font-size: 15px;
+}
+
+.chip--tag .linkish {
+  font-family: var(--font-caps);
+  padding-left: 2px;
+}
+
+.uproot {
+  flex-wrap: wrap;
+}
+
+.uproot > .small:first-child {
+  flex: 1 1 100%;
+}
+
+.check-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+}
+
+/* journal rows: skip layout and paint for rows out of view */
+.journal {
+  overflow-anchor: none;
+}
+
+.journal > .j {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 44px;
+}
+
+.journal__older {
+  align-self: center;
+}
+
+/* ---------- bed panel additions ---------- */
+
+.spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 36px;
+  padding: 2px;
+  background: var(--paper-2);
+  border: 2px solid var(--ink);
+}
+
+.spark__bar {
+  flex: 1;
+  min-width: 2px;
+  background: var(--accent);
+}
+
+.spark__bar.is-mid {
+  background: var(--amber);
+}
+
+.spark__bar.is-low {
+  background: var(--wilt);
+}
+
+.stake-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.stake-row select,
+.stake-row input {
+  margin: 2px;
+  padding: 2px 6px;
+  background: var(--paper);
+  color: var(--ink);
+  min-width: 0;
+}
+
+.stake-row input {
+  flex: 1;
+  font-size: 16px;
+}
+
+/* ---------- sow dialog additions ---------- */
+
+.modes--plot {
+  grid-template-columns: 1fr;
+}
+
+.field-row--base {
+  align-items: flex-end;
+}
+
+.field-row--base .check-inline {
+  margin: 0 0 6px;
+}
+
+/* ---------- the Seed Catalogue ---------- */
+
+.catalogue {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 4;
+  width: 460px;
+  max-width: calc(100% - 40px);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--paper);
+  color: var(--ink);
+  border-right: 4px solid var(--ink);
+}
+
+.catalogue__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px 6px 12px;
+  background: var(--title);
+  color: var(--title-ink);
+  border-bottom: 4px solid var(--ink);
+}
+
+.catalogue__head h2 {
+  flex: 1;
+  margin: 0;
+  font-family: var(--font-caps);
+  font-weight: 400;
+  font-size: 14px;
+  text-shadow: 2px 2px 0 var(--accent-dark);
+}
+
+.catalogue__head .muted {
+  color: #dff0d6;
+}
+
+.catalogue__tools {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--paper-2);
+  border-bottom: 2px solid var(--ink);
+}
+
+.catalogue__search {
+  margin: 2px;
+  padding: 3px 8px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.catalogue__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+}
+
+.chip--filter {
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.chip--filter.is-on {
+  background: var(--accent-light);
+}
+
+.catalogue__cols,
+.crow {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr) 112px 34px 50px 34px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+}
+
+.catalogue__cols {
+  padding-top: 3px;
+  padding-bottom: 3px;
+  font-family: var(--font-caps);
+  font-size: 10px;
+  color: var(--ink-2);
+  border-bottom: 2px solid var(--ink);
+}
+
+.catalogue__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.catalogue__list:focus-visible {
+  outline-offset: -3px;
+}
+
+.catalogue__empty {
+  padding: 16px;
+  text-align: center;
+}
+
+.crow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+  border-bottom: 1px solid var(--paper-3);
+}
+
+.crow > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crow:hover {
+  background: var(--paper-2);
+}
+
+.crow.is-selected {
+  background: var(--gold-bg);
+}
+
+.crow.is-active {
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.crow--bed {
+  display: flex;
+  gap: 8px;
+  background: var(--paper-3);
+  font-family: var(--font-caps);
+  font-size: 11px;
+}
+
+.crow--bed .mood {
+  font-size: 11px;
+}
+
+.crow__caret {
+  width: 10px;
+}
+
+.crow__bed {
+  flex: none;
+  max-width: 150px;
+}
+
+.crow__counts {
+  font-family: var(--font);
+  font-size: 12px;
+}
+
+.crow__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+}
+
+.crow__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  background: var(--muted);
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.st--waiting .crow__dot,
+.st--queued .crow__dot {
+  background: var(--amber);
+}
+
+.st--error .crow__dot {
+  background: var(--wilt);
+}
+
+.st--growing .crow__dot {
+  background: var(--accent-light);
+}
+
+.st--harvest .crow__dot {
+  background: var(--gold);
+}
+
+.st--seed .crow__dot,
+.st--stored .crow__dot {
+  background: var(--paper-3);
+}
+
+.crow__plot {
+  font-family: var(--mono);
+  font-size: 15px;
+  color: var(--ink-2);
+}
+
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- command palette ---------- */
+
+.modal--top {
+  place-items: start center;
+  padding-top: 10vh;
+}
+
+.palette {
+  width: min(620px, 100%);
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.palette__input {
+  margin: 10px;
+  padding: 6px 10px;
+  font-size: 16px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.palette__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  border-top: 2px solid var(--ink);
+}
+
+.palette__group {
+  padding: 6px 12px 2px;
+  font-family: var(--font-caps);
+  font-size: 10px;
+  color: var(--ink-2);
+}
+
+.palette__item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 4px 12px;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.palette__item.is-active {
+  background: var(--accent-light);
+  color: var(--ink);
+}
+
+.palette__title {
+  flex: none;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.palette__sub {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.palette__empty {
+  padding: 10px 12px;
+}
+
+.palette__foot {
+  padding: 5px 12px;
+  border-top: 2px solid var(--ink);
+  background: var(--paper-2);
+}
+
+/* ---------- small windows (down to 980 x 640) ---------- */
+
+@media (max-width: 1180px) {
+  .brand__name {
+    display: none;
+  }
+  .catalogue {
+    width: 420px;
+  }
+  .catalogue__cols,
+  .crow {
+    grid-template-columns: 80px minmax(0, 1fr) 96px 30px 46px 30px;
+  }
+}
+
+@media (max-width: 1060px) {
+  .topbar {
+    gap: 8px;
+    padding: 0 8px;
+  }
+  .panel {
+    width: 360px;
+  }
+  .tally {
+    gap: 6px;
+  }
+  .topbar__toggle {
+    padding: 3px 6px;
+  }
+}
+
+@media (max-height: 700px) {
+  .status {
+    margin-top: 8px;
+  }
+  .composer textarea {
+    max-height: 64px;
+  }
+}
+
+/* ===================== Small windows (down to the 980×640 minimum) ===================== */
+
+/* Plant panel: the block above the tabs shrinks and scrolls; the tab content always keeps room. */
+.panel__top {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+.panel__top .ask {
+  max-height: none;
+  overflow: visible;
+}
+.tabpanel {
+  flex: 1 1 0;
+  min-height: 160px;
+}
+
+/* Top bar chips: full sentence on wide windows, compact form (full text in the tooltip) on narrow ones. */
+.chip__short {
+  display: none;
+}
+@media (max-width: 1180px) {
+  .chip__long {
+    display: none;
+  }
+  .chip__short {
+    display: inline;
+  }
+}
+
+@media (max-height: 700px) {
+  .tabpanel {
+    min-height: 140px;
+  }
+  .composer {
+    padding: 6px 10px;
+  }
+  .composer__row {
+    margin-top: 4px;
+  }
+  .composer textarea {
+    max-height: 44px;
+  }
+  .ask__detail,
+  .ask__plan {
+    max-height: 120px;
+  }
+}

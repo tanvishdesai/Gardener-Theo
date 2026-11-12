@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { MODE_LABEL } from "../../../shared/garden";
-import { SPECIES, type PermissionMode, type Species } from "../../../shared/types";
+import { SPECIES, type PermissionMode, type PlotKind, type Species } from "../../../shared/types";
 import { SPECIES_NAME, SPECIES_STYLE } from "../iso/palette";
-import { attempt, garden, select, setState, useGarden } from "../store";
+import { attempt, garden, getState, select, setState, useGarden } from "../store";
 
 const MODELS = [
   { id: "", name: "Claude Code default" },
@@ -22,20 +22,43 @@ export function SowDialog() {
   const [mode, setMode] = useState<PermissionMode>(preset?.mode ?? "default");
   const [model, setModel] = useState("");
   const [busy, setBusy] = useState(false);
+  const soil = useGarden((s) => s.soil[bedId]);
+  const git = !!soil?.isGitRepo;
+  // Unset until the user picks: the soil report may still be loading, and a git repo defaults to a pot.
+  const [picked, setPlot] = useState<PlotKind | undefined>();
+  const plot: PlotKind = picked ?? (git ? "pot" : "bed");
+  const [baseRef, setBaseRef] = useState(soil?.branch ?? "");
+  const [fromOrigin, setFromOrigin] = useState(false);
   const area = useRef<HTMLTextAreaElement>(null);
 
+  // Escape is handled by App (it closes the top-most thing).
   useEffect(() => {
     area.current?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  const pickBed = (id: string) => {
+    setBedId(id);
+    const next = getState().soil[id];
+    setPlot(undefined);
+    setBaseRef(next?.branch ?? "");
+  };
 
   const close = () => setState({ sowing: null, sowPreset: null });
   const submit = async () => {
     if (!bedId || !prompt.trim()) return;
     setBusy(true);
-    const plant = await attempt(() => garden().sow({ bedId, prompt, name: name || undefined, species, permissionMode: mode, model: model || undefined }));
+    const plant = await attempt(() => garden().sow({
+        bedId,
+        prompt,
+        name: name || undefined,
+        species,
+        permissionMode: mode,
+        model: model || undefined,
+        // Soil not read yet: let the main process decide (it asks git).
+        plot: !soil ? picked : git ? plot : "bed",
+        ...(git && plot === "pot" ? { baseRef: baseRef.trim() || undefined, fromOrigin } : {}),
+      }),
+    );
     setBusy(false);
     if (plant) {
       close();
@@ -57,7 +80,7 @@ export function SowDialog() {
 
         <label className="field">
           <span>Bed</span>
-          <select value={bedId} onChange={(e) => setBedId(e.target.value)}>
+          <select value={bedId} onChange={(e) => pickBed(e.target.value)}>
             {beds.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name}
@@ -79,6 +102,35 @@ export function SowDialog() {
             }}
           />
         </label>
+
+        <div className="field">
+          <span>Where it grows</span>
+          <div className="modes modes--plot" role="radiogroup" aria-label="Where it grows">
+            {git && (
+              <button type="button" role="radio" aria-checked={plot === "pot"} className={`mode ${plot === "pot" ? "mode--on" : ""}`} onClick={() => setPlot("pot")}>
+                <span className="mode__name">Potted (own worktree, recommended)</span>
+                <span className="mode__hint">A git worktree on its own branch. Its edits can't collide with yours or other plants'.</span>
+              </button>
+            )}
+            <button type="button" role="radio" aria-checked={!git || plot === "bed"} className={`mode ${!git || plot === "bed" ? "mode--on" : ""}`} onClick={() => setPlot("bed")}>
+              <span className="mode__name">In the bed (share the working tree)</span>
+              <span className="mode__hint">Edits the repo folder directly, like a terminal in it. Plants in the same bed can step on each other.</span>
+            </button>
+          </div>
+          {!git && <span className="muted small">This folder is not a git repo, so plants share its files. Pots need git.</span>}
+        </div>
+
+        {git && plot === "pot" && (
+          <div className="field-row field-row--base">
+            <label className="field">
+              <span>Start from branch</span>
+              <input value={baseRef} onChange={(e) => setBaseRef(e.target.value)} placeholder={soil?.branch ?? "main"} />
+            </label>
+            <label className="check-inline small" title="git fetch origin first, then branch from origin/<branch>">
+              <input type="checkbox" checked={fromOrigin} onChange={(e) => setFromOrigin(e.target.checked)} /> Start from origin (fetch first)
+            </label>
+          </div>
+        )}
 
         <div className="field-row">
           <label className="field">

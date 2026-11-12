@@ -1,0 +1,71 @@
+{
+  "note": "Gardener V1 (git HEAD 89f038a) garden canvas on syntheticGarden, captured with scripts/bench.mjs against a temporary copy of the V1 renderer (removed). Frame ms = draw() time only. 1440x900, headless Edge.",
+  "runs": {
+    "50": {
+      "at": "2026-11-11T06:47:35.859Z",
+      "config": {
+        "beds": 5,
+        "plants": 50,
+        "live": 10,
+        "journal": 2000,
+        "page": "/src/iso/_v1/bench.html"
+      },
+      "firstFrameMs": 675,
+      "frames": 241,
+      "p50": 4.1,
+      "p95": 5.3,
+      "max": 7.2,
+      "interactP95": 5.4,
+      "fillsLastFrame": 17891,
+      "idleFps": 10,
+      "idleDrawCpuPct": 3.32,
+      "longTasks": 0,
+      "longTaskMs": 0,
+      "heapMB": 20.98
+    },
+    "200": {
+      "at": "2026-11-11T06:47:57.234Z",
+      "config": {
+        "beds": 20,
+        "plants": 200,
+        "live": 20,
+        "journal": 2000,
+        "page": "/src/iso/_v1/bench.html"
+      },
+      "firstFrameMs": 586,
+      "frames": 233,
+      "p50": 7.7,
+      "p95": 9.2,
+      "max": 16.7,
+      "interactP95": 9.3,
+      "fillsLastFrame": 52639,
+      "idleFps": 10.33,
+      "idleDrawCpuPct": 7.5,
+      "longTasks": 0,
+      "longTaskMs": 0,
+      "heapMB": 36.34
+    },
+    "1000": {
+      "at": "2026-11-11T06:48:25.822Z",
+      "config": {
+        "beds": 100,
+        "plants": 1000,
+        "live": 30,
+        "journal": 2000,
+        "page": "/src/iso/_v1/bench.html"
+      },
+      "firstFrameMs": 1273,
+      "frames": 319,
+      "p50": 37.6,
+      "p95": 43.5,
+      "max": 49.4,
+      "interactP95": 43.4,
+      "fillsLastFrame": 273176,
+      "idleFps": 10,
+      "idleDrawCpuPct": 37.31,
+      "longTasks": 88,
+      "longTaskMs": 4992,
+      "heapMB": 45.92
+    }
+  }
+}

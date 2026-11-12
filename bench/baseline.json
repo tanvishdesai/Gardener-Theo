@@ -1,0 +1,24 @@
+{
+  "at": "2026-11-11T11:21:13.586Z",
+  "config": {
+    "beds": 100,
+    "plants": 1000,
+    "live": 30,
+    "journal": 2000,
+    "query": "",
+    "reduced": false,
+    "page": "/"
+  },
+  "firstFrameMs": 812,
+  "frames": 232,
+  "p50": 1.2,
+  "p95": 2.3,
+  "max": 6.8,
+  "interactP95": 2.3,
+  "fillsLastFrame": 1583,
+  "idleFps": 8,
+  "idleDrawCpuPct": 0.52,
+  "longTasks": 1,
+  "longTaskMs": 75,
+  "heapMB": 21.52
+}

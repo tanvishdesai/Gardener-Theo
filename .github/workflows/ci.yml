@@ -1,0 +1,64 @@
+# PLAN D12 / M0: Windows is the gate; macOS and Linux run typecheck + unit tests without blocking.
+name: CI
+on:
+  push:
+    branches: [main, v2]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      # Git-service and soil tests make commits in temporary repos.
+      - run: git config --global user.name "Gardener CI" && git config --global user.email "ci@gardener.invalid"
+        shell: bash
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: Load budget (30 streaming agents; event-loop p99 ≤ 50 ms, IPC ≤ 60 msg/s)
+        run: npm run soak
+      - run: npm run build
+      - name: Cold-start budget (1,000-plant garden ≤ 1.5 s, median of 5)
+        run: npm run coldstart
+      - name: Desktop smoke test
+        run: node scripts/e2e.mjs
+      - name: Perf benchmark (gates only once bench/baseline.json is committed)
+        if: hashFiles('scripts/bench.mjs') != ''
+        continue-on-error: ${{ hashFiles('bench/baseline.json') == '' }}
+        run: node scripts/bench.mjs --plants 1000 --beds 100 --live 30
+      - uses: actions/upload-artifact@v4
+        if: always() && hashFiles('bench/results.json') != ''
+        with:
+          name: bench-results
+          path: bench/results.json
+
+  unit:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: git config --global user.name "Gardener CI" && git config --global user.email "ci@gardener.invalid"
+      - run: npm ci
+      - run: npm run typecheck
+      # npm test runs vitest inside Electron with ELECTRON_RUN_AS_NODE=1, which needs no display.
+      # The Electron binary still links GTK/NSS on Linux; ubuntu-latest ships them (it has Chrome).
+      - run: npm test

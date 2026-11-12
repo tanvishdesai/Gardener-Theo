@@ -2,31 +2,64 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { GardenApi, GardenEvent } from "../shared/types";
 
-const call =
-  (name: string) =>
-  (...args: unknown[]) =>
-    ipcRenderer.invoke(`garden:${name}`, ...args);
+type Method = Exclude<keyof GardenApi, "onEvent">;
 
-const api: GardenApi = {
-  snapshot: call("snapshot") as GardenApi["snapshot"],
-  entries: call("entries") as GardenApi["entries"],
-  pickDirectory: call("pickDirectory") as GardenApi["pickDirectory"],
-  addBed: call("addBed") as GardenApi["addBed"],
-  removeBed: call("removeBed") as GardenApi["removeBed"],
-  refreshSoil: call("refreshSoil") as GardenApi["refreshSoil"],
-  sow: call("sow") as GardenApi["sow"],
-  send: call("send") as GardenApi["send"],
-  interrupt: call("interrupt") as GardenApi["interrupt"],
-  answer: call("answer") as GardenApi["answer"],
-  setMode: call("setMode") as GardenApi["setMode"],
-  markRead: call("markRead") as GardenApi["markRead"],
-  uproot: call("uproot") as GardenApi["uproot"],
-  reveal: call("reveal") as GardenApi["reveal"],
-  onEvent(listener) {
-    const wrapped = (_e: unknown, event: GardenEvent) => listener(event);
-    ipcRenderer.on("garden:event", wrapped);
-    return () => ipcRenderer.removeListener("garden:event", wrapped);
-  },
+/** Every GardenApi method is a plain invoke on `garden:<name>`; the list is checked against the type. */
+const METHODS = [
+  "snapshot",
+  "openJournal",
+  "journalPage",
+  "closeJournal",
+  "toolOutput",
+  "search",
+  "pickDirectory",
+  "addBed",
+  "removeBed",
+  "refreshSoil",
+  "setStake",
+  "soilHistory",
+  "sow",
+  "send",
+  "interrupt",
+  "answer",
+  "setMode",
+  "markRead",
+  "setPinned",
+  "uproot",
+  "adopt",
+  "reveal",
+  "rings",
+  "diffFiles",
+  "diffFile",
+  "pruneTo",
+  "forkAt",
+  "harvestInfo",
+  "commitMessage",
+  "commit",
+  "push",
+  "openPullRequest",
+  "runStake",
+  "usage",
+  "setSettings",
+  "hookStatus",
+  "installHook",
+  "uninstallHook",
+  "firstRunCheck",
+  "importHistory",
+  "diagnostics",
+] as const satisfies readonly Method[];
+
+// Compile-time check that no GardenApi method is missing from METHODS.
+type Missing = Exclude<Method, (typeof METHODS)[number]>;
+const complete: [Missing] extends [never] ? true : Missing = true;
+void complete;
+
+const api = Object.fromEntries(METHODS.map((name) => [name, (...args: unknown[]) => ipcRenderer.invoke(`garden:${name}`, ...args)])) as unknown as GardenApi;
+
+api.onEvent = (listener) => {
+  const wrapped = (_e: unknown, event: GardenEvent) => listener(event);
+  ipcRenderer.on("garden:event", wrapped);
+  return () => ipcRenderer.removeListener("garden:event", wrapped);
 };
 
 contextBridge.exposeInMainWorld("gardener", api);

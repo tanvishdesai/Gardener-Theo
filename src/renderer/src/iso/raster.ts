@@ -84,6 +84,16 @@ export function hashString(s: string) {
 export type PixelMap = readonly string[];
 export type Palette = Record<string, string>;
 
+/** A fresh offscreen canvas with smoothing off (it must never blur a pixel). */
+export function makeCanvas(w: number, h: number): { cv: HTMLCanvasElement; c: Ctx } {
+  const cv = document.createElement("canvas");
+  cv.width = Math.max(1, Math.ceil(w));
+  cv.height = Math.max(1, Math.ceil(h));
+  const c = cv.getContext("2d")!;
+  c.imageSmoothingEnabled = false;
+  return { cv, c };
+}
+
 const cache = new Map<string, HTMLCanvasElement>();
 
 export function spriteCanvas(key: string, map: PixelMap, pal: Palette, flip = false): HTMLCanvasElement {
@@ -92,19 +102,20 @@ export function spriteCanvas(key: string, map: PixelMap, pal: Palette, flip = fa
   if (hit) return hit;
   const w = Math.max(...map.map((r) => r.length));
   const h = map.length;
-  const cv = document.createElement("canvas");
-  cv.width = w;
-  cv.height = h;
-  const c = cv.getContext("2d")!;
+  const { cv, c } = makeCanvas(w, h);
+  // one fillRect per horizontal run of the same colour
   for (let y = 0; y < h; y++) {
     const row = map[y];
-    for (let x = 0; x < row.length; x++) {
+    for (let x = 0; x < row.length; ) {
       const ch = row[x];
-      if (ch === "." || ch === " ") continue;
-      const color = pal[ch];
-      if (!color) continue;
-      c.fillStyle = color;
-      c.fillRect(flip ? w - 1 - x : x, y, 1, 1);
+      let e = x + 1;
+      while (e < row.length && row[e] === ch) e++;
+      const color = ch === "." || ch === " " ? undefined : pal[ch];
+      if (color) {
+        c.fillStyle = color;
+        c.fillRect(flip ? w - e : x, y, e - x, 1);
+      }
+      x = e;
     }
   }
   cache.set(k, cv);
@@ -113,4 +124,32 @@ export function spriteCanvas(key: string, map: PixelMap, pal: Palette, flip = fa
 
 export function blit(c: Ctx, key: string, map: PixelMap, pal: Palette, x: number, y: number, flip = false) {
   c.drawImage(spriteCanvas(key, map, pal, flip), Math.round(x), Math.round(y));
+}
+
+// ---------- a 3x5 pixel font for numbers on tags ("+42 -7", "#123") ----------
+
+const GLYPHS: Record<string, string[]> = {
+  "0": ["xxx", "x.x", "x.x", "x.x", "xxx"],
+  "1": [".x.", "xx.", ".x.", ".x.", "xxx"],
+  "2": ["xxx", "..x", "xxx", "x..", "xxx"],
+  "3": ["xxx", "..x", ".xx", "..x", "xxx"],
+  "4": ["x.x", "x.x", "xxx", "..x", "..x"],
+  "5": ["xxx", "x..", "xxx", "..x", "xxx"],
+  "6": ["xxx", "x..", "xxx", "x.x", "xxx"],
+  "7": ["xxx", "..x", ".x.", ".x.", ".x."],
+  "8": ["xxx", "x.x", "xxx", "x.x", "xxx"],
+  "9": ["xxx", "x.x", "xxx", "..x", "xxx"],
+  "+": ["...", ".x.", "xxx", ".x.", "..."],
+  "-": ["...", "...", "xxx", "...", "..."],
+  "#": [".x.x.", "xxxxx", ".x.x.", "xxxxx", ".x.x."],
+  " ": ["...", "...", "...", "...", "..."],
+};
+
+const glyph = (ch: string) => GLYPHS[ch] ?? GLYPHS[" "];
+export const textWidth = (s: string) => Math.max(0, [...s].reduce((w, ch) => w + glyph(ch)[0].length + 1, 0) - 1);
+
+/** Pre-rendered pixel text (cached), 5 px tall. */
+export function textSprite(s: string, color: string): HTMLCanvasElement {
+  const rows = [0, 1, 2, 3, 4].map((y) => [...s].map((ch) => glyph(ch)[y]).join("."));
+  return spriteCanvas(`text:${s}:${color}`, rows, { x: color });
 }

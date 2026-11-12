@@ -1,0 +1,25 @@
+/* Garden overlay pieces added in V2 (the rest of the garden chrome is in styles.css). */
+.nametag--tray {
+  transform: translate(-50%, 0);
+  padding: 1px 6px 2px;
+  background: var(--paper, #f6f0dc);
+  color: var(--ink, #2b2233);
+  font-size: 12px;
+}
+
+.iso__tip--plant {
+  white-space: normal;
+  max-width: 360px;
+  padding: 4px 8px 5px;
+  line-height: 1.3;
+}
+
+.iso__tip-title {
+  font-family: var(--font-caps);
+  font-size: 11px;
+  color: var(--gold, #ffe27a);
+}
+
+.iso__tip--waiting .iso__tip-title {
+  color: var(--amber, #f2b33d);
+}

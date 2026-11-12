@@ -60,7 +60,22 @@ export const P = {
   rain: "#8fa6c8",
   storm: "#8a94a8",
   stormDark: "#6a7488",
+  pot: "#c8643c",
+  potDark: "#9a4a2a",
+  potLight: "#e8936a",
+  paper: "#f6f0dc",
+  paperShade: "#c9bf9e",
+  notch: "#d9eaa0",
+  wicker: "#d8a656",
+  wickerDark: "#a8743a",
+  passing: "#3fbf4f",
+  pending: "#f2b33d",
+  failing: "#e0533f",
+  awning: "#e0533f",
 };
+
+/** The bed's mood, shown as the signpost flag and the block colour in the map view. */
+export const MOOD_COLOR = { fallow: "#b8a888", sown: "#8fd06c", growing: "#5fb4ec", tending: "#f2b33d", harvest: "#ffe27a" } as const;
 
 export interface SpeciesStyle {
   petal: string;
@@ -79,6 +94,9 @@ export const SPECIES_STYLE: Record<Species, SpeciesStyle> = {
 };
 
 export const WILTED: SpeciesStyle = { petal: "#a68458", petalDark: "#7d5f3c", petalLight: "#c4a679", center: "#5a4028" };
+
+/** An ended volunteer: its terminal session is over. */
+export const FADED: SpeciesStyle = { petal: "#d8d2c4", petalDark: "#aaa394", petalLight: "#eeeae0", center: "#9a9282" };
 
 export const SPECIES_NAME: Record<Species, string> = {
   sunflower: "Sunflower",
@@ -99,6 +117,8 @@ export interface LeafStyle {
 
 export const LEAF: LeafStyle = { stem: "#3b8a3f", stemDark: "#2b6a33", leaf: "#4fa64a", leafDark: "#2f7a3a", leafLight: "#7fcc5c" };
 export const LEAF_WILTED: LeafStyle = { stem: "#7b7a3a", stemDark: "#5e5c2a", leaf: "#8d8a42", leafDark: "#6a682e", leafLight: "#aaa660" };
+
+export const LEAF_FADED: LeafStyle = { stem: "#8a9a7a", stemDark: "#6e7c60", leaf: "#9cab8a", leafDark: "#7a8a6a", leafLight: "#b8c4a6" };
 
 export type Phase = "dawn" | "day" | "dusk" | "night";
 

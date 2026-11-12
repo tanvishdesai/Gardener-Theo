@@ -1,9 +1,12 @@
-// Everything that gets drawn into the world, one pixel at a time.
+// Everything that gets drawn into the world, one pixel at a time. Repeated shapes (ground tiles,
+// idle plants, labels, glows, the sky) are pre-rendered once and blitted.
 import { maturity } from "../../../shared/garden";
-import type { Plant, SoilReport } from "../../../shared/types";
-import { INK, LEAF, LEAF_WILTED, P, SKY, SPECIES_STYLE, WILTED, type Phase } from "./palette";
-import { blit, dither, disc, isoLine, poly, px, rect, rnd, type Ctx, type Pt } from "./raster";
+import type { Plant, PullRequestInfo, SoilReport, Weather } from "../../../shared/types";
+import { FADED, INK, LEAF, LEAF_FADED, LEAF_WILTED, P, SKY, SPECIES_STYLE, WILTED, type Phase } from "./palette";
+import { blit, dither, disc, isoLine, makeCanvas, poly, px, rect, rnd, textSprite, textWidth, type Ctx, type Pt } from "./raster";
 import {
+  BASKET,
+  BASKET_PAL,
   BEE,
   BEE_PAL,
   BUBBLE_FILL,
@@ -17,27 +20,37 @@ import {
   ICON_PAL,
   ICONS,
   LAVENDER_BUD,
+  POT,
+  POT_PAL,
+  PUFF,
+  PUFF_PAL,
   RAINCLOUD,
   RAINCLOUD_PAL,
   SHOVEL,
   SHOVEL_PAL,
+  TRAY,
+  TRAY_PAL,
   WEED,
   WEED_PAL,
+  WILD,
   type BubbleKind,
 } from "./sprites";
-import { BLOCK_H, iso, type World } from "./world";
+import { BLOCK_H, CLIFF, GRASS, inside, intersects, iso, PATH, type Rect, type Tile, type World } from "./world";
 
 // ---------- shapes ----------
 
 /** An axis-aligned iso box standing on ground point (cx, cy): hw is half the footprint width. */
 export function box(c: Ctx, cx: number, cy: number, hw: number, h: number, top: string, left: string, right: string) {
   const hh = hw / 2;
-  const L = { x: cx - hw, y: cy };
-  const B = { x: cx, y: cy + hh };
-  const R = { x: cx + hw, y: cy };
-  const T = { x: cx, y: cy - hh };
-  poly(c, [L, B, { x: B.x, y: B.y - h }, { x: L.x, y: L.y - h }], left);
-  poly(c, [B, R, { x: R.x, y: R.y - h }, { x: B.x, y: B.y - h }], right);
+  prism(c, { x: cx, y: cy - hh }, { x: cx + hw, y: cy }, { x: cx, y: cy + hh }, { x: cx - hw, y: cy }, h, top, left, right);
+}
+
+/** A block of height h on the ground quad T(op) R(ight) B(ottom) L(eft). */
+export function prism(c: Ctx, T: Pt, R: Pt, B: Pt, L: Pt, h: number, top: string, left: string, right: string) {
+  if (h > 0) {
+    poly(c, [L, B, up(B, h), up(L, h)], left);
+    poly(c, [B, R, up(R, h), up(B, h)], right);
+  }
   poly(c, [up(T, h), up(R, h), up(B, h), up(L, h)], top);
 }
 
@@ -58,82 +71,95 @@ export function tileCursor(c: Ctx, x: number, y: number, color: string, dashed =
   seg(x + 14, y + 8, -1);
 }
 
-// ---------- static ground ----------
+// ---------- static ground (drawn into cached tiles) ----------
 
-export const CLIFF = 26;
+const groundSprites = new Map<string, HTMLCanvasElement>();
 
-export function worldBounds(w: World) {
-  return { x: -w.rows * 16 - 24, y: -96, w: (w.cols + w.rows) * 16 + 48, h: (w.cols + w.rows) * 8 + CLIFF + 140 };
+/** One grass or path tile, 32 x 16, in one of 8 speckle variants. */
+function groundSprite(path: boolean, parity: number, v: number): HTMLCanvasElement {
+  const key = `${path ? 1 : 0}${parity}${v}`;
+  const hit = groundSprites.get(key);
+  if (hit) return hit;
+  const { cv, c } = makeCanvas(32, 16);
+  const x = 16;
+  const y = 0;
+  if (path) {
+    diamond(c, x, y, parity ? P.pathA : P.pathB);
+    for (let i = 0; i < 5; i++) {
+      const bx = x - 10 + Math.floor(rnd(v, 1, i + 20) * 20);
+      const by = y + 4 + Math.floor(rnd(v, 1, i + 30) * 8);
+      rect(c, bx, by, 2, 1, P.pathLight);
+      rect(c, bx, by + 1, 2, 1, P.pathDark);
+    }
+  } else {
+    diamond(c, x, y, parity ? P.grassA : P.grassB);
+    for (let i = 0; i < 4; i++) {
+      const bx = x - 10 + Math.floor(rnd(v, 2, i) * 20);
+      const by = y + 4 + Math.floor(rnd(v, 2, i + 9) * 8);
+      px(c, bx, by, P.blade);
+      px(c, bx, by + 1, P.grassDark);
+    }
+  }
+  groundSprites.set(key, cv);
+  return cv;
 }
 
-export function paintGround(c: Ctx, w: World) {
-  const L = iso(0, w.rows);
-  const B = iso(w.cols, w.rows);
-  const R = iso(w.cols, 0);
-  // The island's cliff faces, with a ragged underside.
-  poly(c, [L, B, up(B, -CLIFF), up(L, -CLIFF)], P.cliffLeft);
-  poly(c, [B, R, up(R, -CLIFF), up(B, -CLIFF)], P.cliffRight);
-  for (const k of [8, 17]) {
-    isoLine(c, L.x, L.y + k, w.cols * 8, 1, P.cliffStrata);
-    isoLine(c, B.x, B.y + k, w.rows * 8, 1, P.cliffDark, true);
-  }
-  for (let x = L.x; x < R.x; x += 2) {
-    const onLeft = x < B.x;
-    const baseY = onLeft ? L.y + (x - L.x) / 2 : B.y - (x - B.x) / 2;
-    const drip = Math.floor(rnd(x, 3) * 7);
-    rect(c, x, baseY + CLIFF, 2, drip, onLeft ? P.cliffLeft : P.cliffRight);
-    if (drip > 3) rect(c, x, baseY + CLIFF + drip - 1, 2, 1, P.cliffDark);
-  }
+const FLOWER_COLORS = ["#ffe066", "#ff8fb1", "#ffffff", "#b79cf0"];
 
-  for (let gy = 0; gy < w.rows; gy++)
-    for (let gx = 0; gx < w.cols; gx++) {
-      const g = w.ground[gy * w.cols + gx];
-      const { x, y } = iso(gx, gy);
-      if (g === "path") paintPath(c, x, y, gx, gy);
-      else paintGrass(c, x, y, gx, gy);
+/** The island (cliffs, grass, paths, flowers) clipped to world rect r. */
+export function paintIsland(c: Ctx, w: World, r: Rect) {
+  const L = iso(w.x0, w.y0 + w.rows);
+  const B = iso(w.x0 + w.cols, w.y0 + w.rows);
+  const R = iso(w.x0 + w.cols, w.y0);
+  const top = Math.min(L.y, R.y);
+  const cliffBox = { x: L.x, y: top, w: R.x - L.x, h: B.y + CLIFF + 8 - top };
+  const edge = intersects(cliffBox, r);
+  if (edge) {
+    poly(c, [L, B, up(B, -CLIFF), up(L, -CLIFF)], P.cliffLeft);
+    poly(c, [B, R, up(R, -CLIFF), up(B, -CLIFF)], P.cliffRight);
+    for (const k of [8, 17]) {
+      isoLine(c, L.x, L.y + k, w.cols * 8, 1, P.cliffStrata);
+      isoLine(c, B.x, B.y + k, w.rows * 8, 1, P.cliffDark, true);
     }
-  // A grass lip along the island's front edges.
-  isoLine(c, L.x, L.y - 1, w.cols * 8, 1, P.grassDark);
-  isoLine(c, B.x - 2, B.y - 1, w.rows * 8, -1, P.grassDark, true);
-
+    const x0 = L.x + Math.max(0, Math.floor((r.x - L.x) / 2) * 2 - 2);
+    const x1 = Math.min(R.x, r.x + r.w + 2);
+    for (let x = x0; x < x1; x += 2) {
+      const onLeft = x < B.x;
+      const baseY = onLeft ? L.y + (x - L.x) / 2 : B.y - (x - B.x) / 2;
+      const drip = Math.floor(rnd(x, 3) * 7);
+      rect(c, x, baseY + CLIFF, 2, drip, onLeft ? P.cliffLeft : P.cliffRight);
+      if (drip > 3) rect(c, x, baseY + CLIFF + drip - 1, 2, 1, P.cliffDark);
+    }
+  }
+  // tiles whose diamond can touch r: s = gx + gy picks the row, d = gx - gy the column
+  const sMin = Math.floor(r.y / 8) - 2;
+  const sMax = Math.ceil((r.y + r.h) / 8);
+  const dMin = Math.floor((r.x - 16) / 16) - 1;
+  const dMax = Math.ceil((r.x + r.w + 16) / 16);
+  for (let s = sMin; s <= sMax; s++)
+    for (let d = dMin; d <= dMax; d++) {
+      if ((s + d) & 1) continue;
+      const gx = (s + d) / 2;
+      const gy = (s - d) / 2;
+      if (!inside(w, gx, gy)) continue;
+      const g = w.ground[(gy - w.y0) * w.cols + (gx - w.x0)];
+      if (g !== GRASS && g !== PATH) continue; // planters cover their own tile
+      c.drawImage(groundSprite(g === PATH, (gx + gy) & 1, Math.floor(rnd(gx, gy, 99) * 8)), d * 16 - 16, s * 8);
+    }
+  if (edge) {
+    // a grass lip along the island's front edges
+    isoLine(c, L.x, L.y - 1, w.cols * 8, 1, P.grassDark);
+    isoLine(c, B.x - 2, B.y - 1, w.rows * 8, -1, P.grassDark, true);
+  }
   for (const f of w.flowers) {
     const { x, y } = iso(f.gx, f.gy);
-    const colors = ["#ffe066", "#ff8fb1", "#ffffff", "#b79cf0"];
     const fx = x + f.ox;
     const fy = y + 8 + f.oy;
+    if (fx < r.x - 4 || fx > r.x + r.w + 4 || fy < r.y - 4 || fy > r.y + r.h + 4) continue;
     px(c, fx, fy + 1, P.grassDark);
-    px(c, fx, fy, colors[f.color]);
+    px(c, fx, fy, FLOWER_COLORS[f.color]);
     px(c, fx + 3, fy + 2, P.grassDark);
-    px(c, fx + 3, fy + 1, colors[(f.color + 1) % 4]);
-  }
-
-  // The empty plot waiting to become a bed.
-  const ng = w.newGround;
-  for (let gx = ng.gx; gx < ng.gx + ng.w; gx++)
-    for (let gy = ng.gy; gy < ng.gy + ng.d; gy++) {
-      const { x, y } = iso(gx, gy);
-      diamond(c, x, y, P.soilLight);
-      for (let i = 0; i < 4; i++) isoLine(c, x - 12 + i * 6, y + 6 + i * 3 - 4, 3, 1, P.soil);
-    }
-}
-
-function paintGrass(c: Ctx, x: number, y: number, gx: number, gy: number) {
-  diamond(c, x, y, (gx + gy) % 2 ? P.grassA : P.grassB);
-  for (let i = 0; i < 4; i++) {
-    const bx = x - 10 + Math.floor(rnd(gx, gy, i) * 20);
-    const by = y + 4 + Math.floor(rnd(gx, gy, i + 9) * 8);
-    px(c, bx, by, P.blade);
-    px(c, bx, by + 1, P.grassDark);
-  }
-}
-
-function paintPath(c: Ctx, x: number, y: number, gx: number, gy: number) {
-  diamond(c, x, y, (gx + gy) % 2 ? P.pathA : P.pathB);
-  for (let i = 0; i < 5; i++) {
-    const bx = x - 10 + Math.floor(rnd(gx, gy, i + 20) * 20);
-    const by = y + 4 + Math.floor(rnd(gx, gy, i + 30) * 8);
-    rect(c, bx, by, 2, 1, P.pathLight);
-    rect(c, bx, by + 1, 2, 1, P.pathDark);
+    px(c, fx + 3, fy + 1, FLOWER_COLORS[(f.color + 1) % 4]);
   }
 }
 
@@ -237,8 +263,8 @@ export function tree(c: Ctx, gx: number, gy: number, size: number) {
   px(c, cx + 3, cy - 11 - r, P.leafD);
 }
 
-export function greenhouse(c: Ctx, w: World, night: boolean) {
-  const g = w.greenhouse;
+/** The greenhouse at slot (0,0); `home` is the path tile at its door. */
+export function greenhouse(c: Ctx, g: World["greenhouse"], home: Tile, night: boolean) {
   const H = 22;
   const T = iso(g.gx, g.gy);
   const R = iso(g.gx + g.w, g.gy);
@@ -285,22 +311,33 @@ export function greenhouse(c: Ctx, w: World, night: boolean) {
     for (let s = 0; s <= steps; s++) px(c, m.x + ((a.x - m.x) * s) / steps, m.y + ((a.y - m.y) * s) / steps, P.frame);
   }
   // door facing the path
-  const door = iso(w.home.gx, w.home.gy);
+  const door = iso(home.gx, home.gy);
   rect(c, door.x - 4, door.y - 15, 9, 15, P.frameDark);
   rect(c, door.x - 3, door.y - 14, 7, 14, night ? "#ffe9a0" : "#9fd0dc");
   rect(c, door.x, door.y - 14, 1, 14, P.frameDark);
 }
 
-export function newGroundMarker(c: Ctx, w: World, frame: number) {
-  const ng = w.newGround;
+/** The seed tray on a planter's front corner: "+N in the catalogue". */
+export function seedTray(c: Ctx, gx: number, gy: number) {
+  const { x, y } = iso(gx, gy);
+  blit(c, "tray", TRAY, TRAY_PAL, x - 6, y + 4);
+}
+
+/** The empty plot waiting to become a bed (the next free grid slot). Static: it does not blink. */
+export function newGroundPlot(c: Ctx, ng: World["newGround"]) {
+  for (let gx = ng.gx; gx < ng.gx + ng.w; gx++)
+    for (let gy = ng.gy; gy < ng.gy + ng.d; gy++) {
+      const { x, y } = iso(gx, gy);
+      diamond(c, x, y, P.soilLight);
+      for (let i = 0; i < 4; i++) isoLine(c, x - 12 + i * 6, y + 6 + i * 3 - 4, 3, 1, P.soil);
+    }
   const p = iso(ng.gx + 1, ng.gy + ng.d - 1);
   blit(c, "shovel", SHOVEL, SHOVEL_PAL, p.x - 3, p.y - 2);
   const corners = [iso(ng.gx, ng.gy), iso(ng.gx + ng.w, ng.gy), iso(ng.gx + ng.w, ng.gy + ng.d), iso(ng.gx, ng.gy + ng.d)];
-  const color = frame % 8 < 4 ? "#ffffff" : P.pathLight;
-  isoLine(c, corners[0].x, corners[0].y, ng.w * 8, 1, color);
-  isoLine(c, corners[3].x, corners[3].y, ng.w * 8, 1, color);
-  isoLine(c, corners[0].x - 2, corners[0].y, ng.d * 8, -1, color);
-  isoLine(c, corners[1].x - 2, corners[1].y, ng.d * 8, -1, color);
+  isoLine(c, corners[0].x, corners[0].y, ng.w * 8, 1, P.pathLight);
+  isoLine(c, corners[3].x, corners[3].y, ng.w * 8, 1, P.pathLight);
+  isoLine(c, corners[0].x - 2, corners[0].y, ng.d * 8, -1, P.pathLight);
+  isoLine(c, corners[1].x - 2, corners[1].y, ng.d * 8, -1, P.pathLight);
 }
 
 // ---------- plants ----------
@@ -310,7 +347,27 @@ const HEIGHTS = [0, 13, 20, 27, 34];
 export function plantHeight(plant: Plant): number {
   const m = maturity(plant.turns);
   const seedOnly = m === 0 && plant.status === "idle";
-  return seedOnly ? 4 : m === 0 ? 7 : HEIGHTS[m];
+  return (seedOnly ? 4 : m === 0 ? 7 : HEIGHTS[m]) + (plant.plot === "pot" ? 5 : 0);
+}
+
+/** Stake ribbon: the open PR's checks, else the bed's stake run. Null = plain twine. */
+export function ribbonColor(p: Plant): string | null {
+  const checks = p.pr?.state === "open" && p.pr.checks !== "none" ? p.pr.checks : p.stake?.status;
+  if (checks === "passing") return P.passing;
+  if (checks === "failing") return P.failing;
+  if (checks === "pending" || checks === "running") return P.pending;
+  return null;
+}
+
+/** Leaf tally "+42 -7": shown while the last turn's change is fresh (unread, or in the last 10 minutes). */
+export function showTally(p: Plant, now: number): boolean {
+  const d = p.lastDiff;
+  return !!d && d.insertions + d.deletions > 0 && (p.unread || now - p.updatedAt < 600_000);
+}
+
+/** Anything about this plant that moves (bob, sway, butterflies, rain). Others are cached sprites. */
+export function animates(p: Plant): boolean {
+  return bubbleFor(p) !== null;
 }
 
 export interface PlantPaint {
@@ -321,26 +378,53 @@ export interface PlantPaint {
   staked: boolean;
   reduced: boolean;
   seed: number;
+  /** Review comments waiting on the plant (paper tags). */
+  tags: number;
 }
 
 /** Draws the plant and its in-world effects; returns where its head is (for the bubble). */
 export function paintPlant(c: Ctx, o: PlantPaint): Pt {
-  const { plant, bx, by, frame, reduced } = o;
+  const { plant, bx, frame, reduced } = o;
+  const by0 = o.by;
+  let by = o.by;
   const m = maturity(plant.turns);
   const busy = plant.status === "thinking" || plant.status === "working";
   const waiting = plant.status === "waiting";
   const wilted = plant.status === "error";
   const seedOnly = m === 0 && !busy && !waiting && !wilted;
-  const s = wilted ? WILTED : SPECIES_STYLE[plant.species];
-  const lf = wilted ? LEAF_WILTED : LEAF;
+  const volunteer = plant.origin === "volunteer";
+  const faded = volunteer && !!plant.ended;
+  const s = wilted ? WILTED : faded ? FADED : SPECIES_STYLE[plant.species];
+  const lf = wilted ? LEAF_WILTED : faded ? LEAF_FADED : LEAF;
   const f = reduced ? 0 : frame;
-  const activity = busy ? (plant.status === "thinking" ? "think" : plant.activity ?? "other") : undefined;
+  const activity = busy ? (plant.status === "thinking" ? "think" : (plant.activity ?? "other")) : undefined;
+  const potted = plant.plot === "pot";
+  const prOpen = plant.pr?.state === "open";
+
+  // beside the plant: harvest basket, market stall, volunteer tag
+  if (potted && ((plant.potDirty ?? 0) > 0 || (plant.unpushed ?? 0) > 0) && !prOpen) blit(c, "basket", BASKET, BASKET_PAL, bx + 6, by0 - 6);
+  if (prOpen) stall(c, bx + 9, by0, plant.pr!);
+  if (volunteer) volunteerTag(c, bx + 7, by0);
+  if (potted) {
+    blit(c, "pot", POT, POT_PAL, bx - 4, by0 - 6);
+    // tiny branch tag tied to the pot
+    px(c, bx - 5, by0 - 4, P.twine);
+    rect(c, bx - 8, by0 - 3, 3, 2, P.paper);
+    if ((plant.potDirty ?? 0) > 0) {
+      rect(c, bx - 3, by0 - 7, 2, 1, P.loose);
+      px(c, bx + 1, by0 - 7, P.loose);
+      rect(c, bx + 3, by0 - 7, 2, 1, P.soilLight);
+    }
+    by -= 5;
+  }
 
   if (plant.permissionMode === "plan" && !seedOnly) trellis(c, bx, by, HEIGHTS[Math.max(1, m)] + 6);
 
   if (seedOnly) {
-    rect(c, bx - 3, by - 1, 7, 1, P.loose);
-    rect(c, bx - 2, by - 2, 5, 1, P.loose);
+    if (!potted) {
+      rect(c, bx - 3, by - 1, 7, 1, P.loose);
+      rect(c, bx - 2, by - 2, 5, 1, P.loose);
+    }
     rect(c, bx + 4, by - 9, 1, 8, P.woodLeft);
     rect(c, bx + 2, by - 14, 6, 6, INK);
     rect(c, bx + 3, by - 13, 4, 4, "#fbf4e3");
@@ -348,23 +432,25 @@ export function paintPlant(c: Ctx, o: PlantPaint): Pt {
     return { x: bx, y: by - 14 };
   }
 
-  rect(c, bx - 3, by, 8, 1, P.soilDark);
-  rect(c, bx - 2, by + 1, 6, 1, P.soilDark);
+  rect(c, bx - 3, by, potted ? 7 : 8, 1, P.soilDark);
+  if (!potted) rect(c, bx - 2, by + 1, 6, 1, P.soilDark);
   if ((activity === "read" || activity === "search") && !reduced) roots(c, bx, by, f, activity === "search");
 
   const h = m === 0 ? 7 : HEIGHTS[m];
-  if (o.staked && h > 12) {
+  const ribbon = ribbonColor(plant);
+  if ((o.staked || ribbon) && h > 12) {
     const sh = Math.round(h * 0.75);
     rect(c, bx - 4, by - sh, 1, sh, P.bamboo);
     px(c, bx - 4, by - sh, P.bambooDark);
     px(c, bx - 4, by - Math.round(sh * 0.4), P.bambooDark);
-    rect(c, bx - 3, by - Math.round(sh * 0.6), 2, 1, P.twine);
+    rect(c, bx - 3, by - Math.round(sh * 0.6), 2, ribbon ? 2 : 1, ribbon ?? P.twine);
   }
 
-  // sway: the top of the stem drifts, more when busy
-  const swayCycle = busy ? [0, 1, 1, 0, 0, -1, -1, 0] : [0, 0, 0, 1, 1, 1, 0, 0, 0, 0, -1, -1, -1, 0, 0, 0];
-  const sway = reduced ? 0 : swayCycle[(f + o.seed) % swayCycle.length];
-  const lean = waiting ? 3 : wilted ? -4 : 0;
+  // sway: the top of the stem drifts while busy; idle plants hold still (so they can be cached)
+  const swayCycle = [0, 1, 1, 0, 0, -1, -1, 0];
+  const sway = reduced || !busy ? 0 : swayCycle[(f + o.seed) % swayCycle.length];
+  // checks failed: lean away from the stake (it stands on the left)
+  const lean = plant.stake?.status === "failing" ? 4 : waiting ? 3 : wilted ? -4 : 0;
   const xAt = (i: number) => bx + Math.round((sway + lean) * (i / Math.max(1, h)) ** 2);
   const thick = m >= 1;
 
@@ -372,6 +458,14 @@ export function paintPlant(c: Ctx, o: PlantPaint): Pt {
     const x = xAt(i);
     px(c, x, by - 1 - i, lf.stem);
     if (thick) px(c, x + 1, by - 1 - i, lf.stemDark);
+  }
+  // growth rings: one notch per completed turn, up to 8
+  if (m >= 1) {
+    const n = Math.min(plant.turns, 8);
+    for (let k = 0; k < n; k++) {
+      const i = Math.round(((k + 1) / (n + 1)) * (h - 4));
+      rect(c, xAt(i), by - 1 - i, thick ? 2 : 1, 1, P.notch);
+    }
   }
   const leaves = m === 0 ? 2 : [0, 2, 4, 5, 6][m];
   for (let k = 0; k < leaves; k++) {
@@ -408,16 +502,32 @@ export function paintPlant(c: Ctx, o: PlantPaint): Pt {
       }
     }
   }
+  // paper tags: review comments waiting to go out with the next message
+  if (o.tags > 0) {
+    const i = Math.round(h * 0.45);
+    const x = xAt(i);
+    const y = by - 1 - i;
+    px(c, x + 2, y, P.twine);
+    rect(c, x + 3, y + 1, 3, 4, P.paper);
+    px(c, x + 5, y + 4, P.paperShade);
+    if (o.tags > 1) {
+      px(c, x - 1, y + 2, P.twine);
+      rect(c, x - 4, y + 3, 3, 4, P.paper);
+      px(c, x - 4, y + 6, P.paperShade);
+    }
+  }
   const head = { x: xAt(h), y: by - h };
   const pal = { p: s.petal, d: s.petalDark, L: s.petalLight, c: s.center, C: "#3d2412", g: lf.leaf };
   const open = !busy && !waiting && m > 0;
   if (m > 0) {
-    const map = open ? HEADS[plant.species] : plant.species === "lavender" ? LAVENDER_BUD : BUD;
-    const key = `head-${open ? plant.species : plant.species === "lavender" ? "lbud" : "bud"}-${wilted ? "w" : plant.species}`;
+    const wild = volunteer && open;
+    const map = wild ? WILD : open ? HEADS[plant.species] : plant.species === "lavender" ? LAVENDER_BUD : BUD;
+    const look = wilted ? "w" : faded ? "f" : plant.species;
+    const key = `head-${wild ? "wild" : open ? plant.species : plant.species === "lavender" ? "lbud" : "bud"}-${look}`;
     const hw = map[0].length;
     const hh = map.length;
     const hx = head.x - Math.floor(hw / 2) + (thick ? 1 : 0) + (wilted ? -1 : 0);
-    const hy = head.y - hh + (plant.species === "lavender" ? 1 : 3) + (wilted || waiting ? 2 : 0);
+    const hy = head.y - hh + (plant.species === "lavender" && !wild ? 1 : 3) + (wilted || waiting ? 2 : 0);
     blit(c, key, map, pal, hx, hy);
     head.x += thick ? 1 : 0;
     head.y = hy;
@@ -437,6 +547,109 @@ export function paintPlant(c: Ctx, o: PlantPaint): Pt {
     if (!reduced && f % 3 === 0) px(c, head.x - 4, head.y - 3, P.sparkle);
   }
   return head;
+}
+
+/** Market stall sign for an open PR: "#123" under a striped awning, with the review state beside it. */
+function stall(c: Ctx, x: number, by: number, pr: PullRequestInfo) {
+  const text = `#${pr.number ?? ""}`;
+  const tw = textWidth(text);
+  rect(c, x, by - 12, 1, 12, P.woodLeft);
+  rect(c, x - 2, by - 21, tw + 4, 9, INK);
+  rect(c, x - 1, by - 20, tw + 2, 7, P.paper);
+  c.drawImage(textSprite(text, INK), x, by - 19);
+  for (let i = 0; i < tw + 4; i += 2) rect(c, x - 2 + i, by - 23, 2, 2, (i / 2) % 2 ? P.white : P.awning);
+  const rx = x + tw + 3;
+  if (pr.review === "approved") {
+    px(c, rx, by - 17, P.passing);
+    px(c, rx + 1, by - 16, P.passing);
+    px(c, rx + 2, by - 17, P.passing);
+    px(c, rx + 3, by - 18, P.passing);
+    px(c, rx + 4, by - 19, P.passing);
+  } else if (pr.review === "changes_requested") {
+    rect(c, rx + 1, by - 21, 2, 4, P.failing);
+    rect(c, rx + 1, by - 16, 2, 2, P.failing);
+  }
+}
+
+/** Volunteer: a tag with a dashed outline on a stick. */
+function volunteerTag(c: Ctx, x: number, by: number) {
+  rect(c, x + 2, by - 8, 1, 8, P.woodLeft);
+  rect(c, x, by - 13, 6, 5, P.paper);
+  for (let i = 0; i < 6; i += 2) {
+    px(c, x + i, by - 13, INK);
+    px(c, x + i, by - 9, INK);
+  }
+  for (let j = 0; j < 5; j += 2) {
+    px(c, x, by - 13 + j, INK);
+    px(c, x + 5, by - 13 + j, INK);
+  }
+}
+
+// ---------- sprite cache for plants that hold still ----------
+
+const SW = 72;
+const SH = 112;
+const AX = 30;
+const AY = 92;
+const plantSprites = new Map<string, { cv: HTMLCanvasElement; hx: number; hy: number }>();
+
+function spriteKey(o: PlantPaint) {
+  const p = o.plant;
+  return [
+    p.species,
+    Math.min(p.turns, 8),
+    p.status,
+    p.plot,
+    p.permissionMode === "plan" ? 1 : 0,
+    p.unread ? 1 + (o.seed % 4) : 0,
+    o.staked ? 1 : 0,
+    ribbonColor(p) ?? "",
+    p.stake?.status === "failing" ? 1 : 0,
+    p.origin === "volunteer" ? (p.ended ? 2 : 1) : 0,
+    Math.min(o.tags, 2),
+    (p.potDirty ?? 0) > 0 ? 1 : 0,
+    (p.unpushed ?? 0) > 0 ? 1 : 0,
+    p.pr?.state === "open" ? `${p.pr.number}${p.pr.review ?? ""}` : "",
+  ].join("|");
+}
+
+/** Draws a plant from the sprite cache (one drawImage), painting it once on a miss. */
+export function drawPlantCached(c: Ctx, o: PlantPaint): Pt {
+  const key = spriteKey(o);
+  let e = plantSprites.get(key);
+  if (e) {
+    plantSprites.delete(key);
+    plantSprites.set(key, e);
+  } else {
+    const { cv, c: sc } = makeCanvas(SW, SH);
+    const head = paintPlant(sc, { ...o, bx: AX, by: AY, frame: 0, reduced: true });
+    e = { cv, hx: head.x - AX, hy: head.y - AY };
+    plantSprites.set(key, e);
+    if (plantSprites.size > 600) plantSprites.delete(plantSprites.keys().next().value!);
+  }
+  c.drawImage(e.cv, o.bx - AX, o.by - AY);
+  return { x: o.bx + e.hx, y: o.by + e.hy };
+}
+
+const tallies = new Map<string, HTMLCanvasElement>();
+
+/** Leaf tally label "+42 -7" (interface: drawn after the night tint). */
+export function tally(c: Ctx, x: number, y: number, ins: number, del: number) {
+  const key = `${ins},${del}`;
+  let cv = tallies.get(key);
+  if (!cv) {
+    const a = `+${ins}`;
+    const b = `-${del}`;
+    const w = textWidth(a) + textWidth(b) + 8;
+    const m = makeCanvas(w, 9);
+    rect(m.c, 0, 0, w, 9, INK);
+    rect(m.c, 1, 1, w - 2, 7, P.paper);
+    m.c.drawImage(textSprite(a, "#2f7a3a"), 2, 2);
+    m.c.drawImage(textSprite(b, "#b8322a"), 5 + textWidth(a), 2);
+    cv = m.cv;
+    tallies.set(key, cv);
+  }
+  c.drawImage(cv, Math.round(x), Math.round(y));
 }
 
 function trellis(c: Ctx, bx: number, by: number, h: number) {
@@ -530,6 +743,7 @@ export function bubbleFor(plant: Plant): BubbleKind | null {
   if (plant.status === "error") return "error";
   if (plant.status === "thinking") return "think";
   if (plant.status === "working") return plant.activity ?? "other";
+  if (plant.queued) return "queued";
   if (plant.unread) return "harvest";
   return null;
 }
@@ -558,28 +772,35 @@ export function gardener(c: Ctx, x: number, y: number, facing: "front" | "back",
   blit(c, `gardener-${facing}-${step}`, frames[step], GARDENER_PAL, x - 5, y - 20, flip);
 }
 
-// ---------- sky ----------
+/** Teleport puff, k = 0..2. */
+export function puff(c: Ctx, x: number, y: number, k: number) {
+  // k comes from frame time minus the click time; a rAF timestamp can be a little older than the click.
+  const f = Math.max(0, Math.min(2, k));
+  blit(c, `puff-${f}`, PUFF[f], PUFF_PAL, x - 4, y - 12);
+}
 
-export function paintSky(c: Ctx, w: number, h: number, phase: Phase, t: number, camX: number, reduced: boolean) {
+// ---------- sky (cached; repainted at most once a minute) ----------
+
+let skyCache: { key: string; cv: HTMLCanvasElement } | null = null;
+
+/** The sky for a viewport: bands, dithered seams, sun or moon, stars and a few still clouds. */
+export function skyCanvas(w: number, h: number, phase: Phase): HTMLCanvasElement {
+  const key = `${w}x${h}|${phase}`;
+  if (skyCache?.key === key) return skyCache.cv;
+  const { cv, c } = makeCanvas(w, h);
   const bands = SKY[phase];
   const bandH = Math.ceil(h / bands.length);
   for (let i = 0; i < bands.length; i++) rect(c, 0, i * bandH, w, bandH + 1, bands[i]);
-  // dithered seams between bands
   for (let i = 1; i < bands.length; i++) {
     const y0 = i * bandH;
+    c.fillStyle = bands[i - 1];
     for (let y = y0 - 3; y < y0 + 3; y++) {
       const amt = (y0 + 3 - y) / 6;
-      c.fillStyle = bands[i - 1];
-      for (let x = (y & 1) * 0; x < w; x++) if (dither(x, y, amt)) c.fillRect(x, y, 1, 1);
+      for (let x = 0; x < w; x++) if (dither(x, y, amt)) c.fillRect(x, y, 1, 1);
     }
   }
   if (phase === "night") {
-    for (let i = 0; i < 70; i++) {
-      const sx = Math.floor(rnd(i, 1) * w);
-      const sy = Math.floor(rnd(i, 2) * h * 0.7);
-      const tw = reduced || (Math.floor(t / 600) + i) % 9 !== 0;
-      if (tw) px(c, sx, sy, i % 5 ? "#c8d0ff" : "#ffffff");
-    }
+    for (let i = 0; i < 70; i++) px(c, Math.floor(rnd(i, 1) * w), Math.floor(rnd(i, 2) * h * 0.7), i % 5 ? "#c8d0ff" : "#ffffff");
     disc(c, w - 60, 40, 9, "#f4f1de");
     disc(c, w - 56, 37, 8, bands[0]);
   } else {
@@ -588,18 +809,34 @@ export function paintSky(c: Ctx, w: number, h: number, phase: Phase, t: number, 
     disc(c, sx, sy, 13, phase === "day" ? "#fff3b0" : "#ffd29a");
     disc(c, sx, sy, 10, phase === "day" ? "#ffe066" : "#ffa95e");
   }
-  const drift = reduced ? 0 : t / 400;
-  for (let i = 0; i < 6; i++) {
-    const span = w + 120;
-    const cx = (((rnd(i, 9) * span + drift * (0.5 + rnd(i, 8)) - camX * 0.08) % span) + span) % span - 60;
-    const cy = 20 + rnd(i, 7) * h * 0.4;
-    cloud(c, cx, cy, 0.7 + rnd(i, 6) * 0.6, phase);
+  for (let i = 0; i < 6; i++) cloud(c, rnd(i, 9) * w, 20 + rnd(i, 7) * h * 0.4, 0.7 + rnd(i, 6) * 0.6, phase);
+  skyCache = { key, cv };
+  return cv;
+}
+
+/** Usage-limit weather over the sky: clouds building up, or rain. Holds still under reduced motion. */
+export function weatherFx(c: Ctx, w: number, h: number, weather: Weather | undefined, t: number, reduced: boolean, phase: Phase) {
+  if (!weather || weather.status === "clear") return;
+  const drift = reduced ? 0 : Math.floor(t / 250);
+  const rain = weather.status === "rain";
+  for (let i = 0; i < 7; i++) {
+    const span = w + 160;
+    const cx = ((((rnd(i, 19) * span + drift * (1 + (i % 3))) % span) + span) % span) - 80;
+    cloud(c, cx, 14 + rnd(i, 17) * h * 0.25, 1 + rnd(i, 16) * 0.6, rain ? "storm" : phase);
+  }
+  if (rain) {
+    const n = Math.round((w * h) / 2500);
+    for (let i = 0; i < n; i++) {
+      const x = Math.floor(rnd(i, 31) * w);
+      const y = Math.floor(((rnd(i, 32) * h + (reduced ? 0 : t / 6)) % h) + 0);
+      rect(c, x, y, 1, 3, P.rain);
+    }
   }
 }
 
-function cloud(c: Ctx, x: number, y: number, s: number, phase: Phase) {
-  const base = phase === "night" ? "#3a4680" : phase === "dusk" ? "#f2b8c0" : phase === "dawn" ? "#ffe2d6" : P.cloud;
-  const shade = phase === "night" ? "#2c3666" : phase === "dusk" ? "#c98aa6" : phase === "dawn" ? "#e8bfc0" : P.cloudShade;
+function cloud(c: Ctx, x: number, y: number, s: number, phase: Phase | "storm") {
+  const base = phase === "storm" ? P.storm : phase === "night" ? "#3a4680" : phase === "dusk" ? "#f2b8c0" : phase === "dawn" ? "#ffe2d6" : P.cloud;
+  const shade = phase === "storm" ? P.stormDark : phase === "night" ? "#2c3666" : phase === "dusk" ? "#c98aa6" : phase === "dawn" ? "#e8bfc0" : P.cloudShade;
   const r = Math.round(6 * s);
   disc(c, x, y + 2, r, shade);
   disc(c, x + r * 1.4, y + 3, r - 1, shade);
@@ -610,21 +847,33 @@ function cloud(c: Ctx, x: number, y: number, s: number, phase: Phase) {
   rect(c, x - r * 2.2, y + r - 1, r * 4.6, 2, shade);
 }
 
-/** Warm light pools at night (lanterns, greenhouse), drawn in banded steps. */
+// ---------- light ----------
+
+const glows = new Map<number, HTMLCanvasElement>();
+
+/** Warm light pools at night (lanterns, greenhouse), banded steps, pre-rendered per radius. */
 export function glow(c: Ctx, x: number, y: number, r: number) {
+  r = Math.round(r);
+  let cv = glows.get(r);
+  if (!cv) {
+    const m = makeCanvas(r * 4 + 2, r + 2);
+    for (const [k, a] of [
+      [1, 0.08],
+      [0.7, 0.08],
+      [0.4, 0.1],
+    ] as const) {
+      m.c.fillStyle = `rgba(255, 200, 110, ${a})`;
+      const rr = Math.round(r * k);
+      for (let yy = -rr; yy <= rr; yy++) {
+        const ww = Math.round(Math.sqrt(rr * rr - yy * yy) * 2);
+        m.c.fillRect(r * 2 + 1 - ww, Math.round(r / 2 + 1 + yy / 2), ww * 2, 1);
+      }
+    }
+    cv = m.cv;
+    glows.set(r, cv);
+  }
   c.save();
   c.globalCompositeOperation = "lighter";
-  for (const [k, a] of [
-    [1, 0.08],
-    [0.7, 0.08],
-    [0.4, 0.1],
-  ] as const) {
-    c.fillStyle = `rgba(255, 200, 110, ${a})`;
-    const rr = Math.round(r * k);
-    for (let yy = -rr; yy <= rr; yy++) {
-      const ww = Math.round(Math.sqrt(rr * rr - yy * yy) * 2);
-      c.fillRect(Math.round(x - ww), Math.round(y + yy / 2), ww * 2, 1);
-    }
-  }
+  c.drawImage(cv, Math.round(x) - r * 2 - 1, Math.round(y) - Math.round(r / 2) - 1);
   c.restore();
 }

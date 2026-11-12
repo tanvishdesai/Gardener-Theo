@@ -122,6 +122,7 @@ export const ICONS: Record<string, PixelMap> = {
   plan_ask: ["kkkkk..", "kwwwkk.", "kwkkwk.", "kwwwwk.", "kwkkwk.", "kwwwwk.", "kkkkkk."],
   error: [".......", "kk...kk", ".kk.kk.", "..kkk..", ".kk.kk.", "kk...kk", "......."],
   harvest: [".rr.rr.", "rrrrrrr", "rrrrrrr", ".rrrrr.", "..rrr..", "...r...", "......."],
+  queued: ["kkkk...", "..k....", ".k.....", "kkkk...", "...kkk.", "....k..", "...kkk."],
 };
 
 export const ICON_PAL: Palette = {
@@ -133,7 +134,7 @@ export const ICON_PAL: Palette = {
   b: "#2f3550",
 };
 
-export type BubbleKind = Activity | "waiting" | "question" | "plan_ask" | "error" | "harvest";
+export type BubbleKind = Activity | "waiting" | "question" | "plan_ask" | "error" | "harvest" | "queued";
 
 export const BUBBLE_FILL: Record<string, string> = {
   waiting: P.amber,
@@ -141,4 +142,30 @@ export const BUBBLE_FILL: Record<string, string> = {
   plan_ask: P.amber,
   error: "#ff9a86",
   harvest: "#fff1a8",
+  queued: "#d6e6f2",
 };
+
+// ---------- V2 props: pots, baskets, wild flowers, puffs ----------
+
+/** Terracotta pot, 9 x 6, bottom row on the soil. */
+export const POT: PixelMap = ["kkkkkkkkk", "kLLLLLLDk", ".kpppppk.", ".kpppDpk.", ".kppppDk.", "..kkkkk.."];
+export const POT_PAL: Palette = { k: INK, L: P.potLight, p: P.pot, D: P.potDark };
+
+/** Harvest basket with produce, 7 x 6. */
+export const BASKET: PixelMap = ["..kkk..", ".k...k.", "krgyrgk", "kwWwWwk", ".kWwWk.", "..kkk.."];
+export const BASKET_PAL: Palette = { k: INK, r: "#e0533f", g: "#5cae4a", y: "#ffd23f", w: P.wicker, W: P.wickerDark };
+
+/** A wild flower head (volunteers), 5 x 5. */
+export const WILD: PixelMap = [".p.p.", "pLpLp", ".pcp.", "pLpdp", ".p.d."];
+
+/** Seed tray with packets, 12 x 6. */
+export const TRAY: PixelMap = ["..aa.bb.cc..", "..aa.bb.cc..", "kkkkkkkkkkkk", "kwwwwwwwwwwk", "kWWWWWWWWWWk", ".kkkkkkkkkk."];
+export const TRAY_PAL: Palette = { k: INK, w: P.woodTop, W: P.woodRight, a: "#ffd23f", b: "#ff8fb1", c: "#fbf4e3" };
+
+/** Teleport puff, 3 frames of 9 x 7. */
+export const PUFF: PixelMap[] = [
+  ["....w....", "...www...", "..wwWww..", ".wwWWWww.", "..wwWww..", "...www...", "....w...."],
+  ["..w...w..", ".ww.w.ww.", "w..www..w", ".wwW.Www.", "w..www..w", ".ww.w.ww.", "..w...w.."],
+  ["w...w...w", ".........", "..w...w..", "w...W...w", "..w...w..", ".........", "w...w...w"],
+];
+export const PUFF_PAL: Palette = { w: "#ffffff", W: "#d6e6f2" };

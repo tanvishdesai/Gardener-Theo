@@ -31,6 +31,18 @@ Retro isometric pixel art, in the spirit of 90s park and hotel sims. The garden 
 | Little seedlings beside it | Subagents ("runners") at work |
 | Trellis behind it | It is in plan mode |
 | Gold flashing tile under it | It is selected |
+| Terracotta pot with a branch tag | It runs in its own git worktree on that branch (the default for git repos) |
+| Notches on the stem | Completed turns ("rings"), each a checkpoint you can diff or prune back to |
+| Leaf tally `+42 −7` | Lines added and removed in its last turn |
+| Paper tags | Review comments you tied to diff lines, sent with your next message |
+| Harvest basket at the pot | Changes ready to commit |
+| Market stall `#123` | An open pull request; the stake ribbon shows its checks (green / amber / red) |
+| Leaning away from its stake | The bed's check command failed after its last turn |
+| Wild flower with a dashed tag | A "volunteer": a Claude Code session running in a terminal |
+| `zz` bubble | Waiting for a free pot: this machine's memory is full, so the message is queued |
+| Seed tray "+N in the catalogue" | Older plants live in the Seed Catalogue list (`\`) |
+| Clouds or rain in the sky | Approaching or at your usage limit |
+| Map view (zoom out to 1) | Beds as blocks with status pips |
 
 Each allotment also shows its **soil report**, read from the repo itself:
 
@@ -124,8 +136,11 @@ npm run build
 
 Set `GARDENER_DEBUG=1` to print each Claude Code process's stderr.
 
+## V2
+
+See [docs/v2/PLAN.md](docs/v2/PLAN.md): per-plant worktrees, growth rings with diffs and prune-back, commit/push/PR, SQLite storage, a garden that stays fast at 1,000 plants, the Seed Catalogue (`\`) and Ctrl+K palette, terminal sessions as volunteers, the Almanac (usage and cost), and stakes (a check command run after each turn).
+
 ## Not done yet
 
-- Packaged installers. `npm run build` produces the app in `out/`; an electron-builder config (with the SDK's native binary unpacked from asar) is the next step.
-- Worktrees per plant. Today, plants in the same bed share a working tree, like several terminals in one repo.
-- Diff view of what a plant changed during a turn.
+- A signed installer: `npm run dist` builds it, but needs the OV code-signing setup in [docs/v2/SIGNING.md](docs/v2/SIGNING.md). `npm run dist:dir` makes an unsigned unpacked build.
+- macOS and Linux packages (V2.0 ships on Windows first).

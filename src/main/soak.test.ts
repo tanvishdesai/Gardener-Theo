@@ -44,11 +44,11 @@ function busyQuery(stop: { now: boolean }) {
   }) as unknown as typeof import("@anthropic-ai/claude-agent-sdk").query;
 }
 
-describe.skipIf(!process.env.GARDENER_SOAK)("load budget: 30 plants streaming (npm run soak)", () => {
+describe.skipIf(!process.env.TERRARIUM_SOAK)("load budget: 30 plants streaming (npm run soak)", () => {
   let dir: string;
   let store: GardenStore;
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "gardener-soak-"));
+    dir = mkdtempSync(join(tmpdir(), "terrarium-soak-"));
     store = new GardenStore(dir);
     store.putBed({ id: "bed", name: "soak", path: join(dir, "no-such-repo"), createdAt: 0 });
   });

@@ -20,7 +20,7 @@ jobs:
           node-version: 24
           cache: npm
       # Git-service and soil tests make commits in temporary repos.
-      - run: git config --global user.name "Gardener CI" && git config --global user.email "ci@gardener.invalid"
+      - run: git config --global user.name "Terrarium CI" && git config --global user.email "ci@terrarium.invalid"
         shell: bash
       - run: npm ci
       - run: npm run typecheck
@@ -56,7 +56,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: git config --global user.name "Gardener CI" && git config --global user.email "ci@gardener.invalid"
+      - run: git config --global user.name "Terrarium CI" && git config --global user.email "ci@terrarium.invalid"
       - run: npm ci
       - run: npm run typecheck
       # npm test runs vitest inside Electron with ELECTRON_RUN_AS_NODE=1, which needs no display.

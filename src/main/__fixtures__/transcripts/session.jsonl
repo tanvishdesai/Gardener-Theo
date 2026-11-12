@@ -1,5 +1,5 @@
 {"type":"permission-mode","permissionMode":"acceptEdits","sessionId":"__SID__"}
-{"type":"api-request-blob","sessionId":"__SID__","note":"huge line Gardener must skip unparsed; deliberately not valid JSON",
+{"type":"api-request-blob","sessionId":"__SID__","note":"huge line Terrarium must skip unparsed; deliberately not valid JSON",
 {"parentUuid":null,"isSidechain":false,"type":"user","message":{"role":"user","content":"fix the build"},"uuid":"u1","timestamp":"2026-11-10T12:00:00.000Z","cwd":"__CWD__","sessionId":"__SID__","entrypoint":"__ENTRY__"}
 {"parentUuid":"u1","isSidechain":false,"type":"user","isMeta":true,"message":{"role":"user","content":"injected caveat"},"uuid":"m1","timestamp":"2026-11-10T12:00:01.000Z","cwd":"__CWD__","sessionId":"__SID__"}
 {"parentUuid":"m1","isSidechain":false,"type":"user","message":{"role":"user","content":"<command-name>/clear</command-name>"},"uuid":"c1","timestamp":"2026-11-10T12:00:02.000Z","cwd":"__CWD__","sessionId":"__SID__"}

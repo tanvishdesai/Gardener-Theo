@@ -1,4 +1,4 @@
-/* Gardener: retro isometric pixel art. Hard 2px ink borders, notched corners, bevelled buttons,
+/* Terrarium: retro isometric pixel art. Hard 2px ink borders, notched corners, bevelled buttons,
    pixel fonts. Panels are "windows" with a coloured title strip, like an old isometric sim. */
 
 :root {
@@ -31,6 +31,8 @@
   --title: #3f8f4f;
   --title-ink: #f6edd6;
   --focus: #5fb4ec;
+  /* Text size setting (1, 1.25, 1.5), set on <html> by a11y.ts. Scales font sizes only, never the canvas. */
+  --text: 1;
 
   color-scheme: light;
 }
@@ -83,7 +85,7 @@ body,
 
 body {
   font-family: var(--font);
-  font-size: 15px;
+  font-size: calc(15px * var(--text));
   line-height: 1.35;
   color: var(--ink);
   background: #1c1724;
@@ -174,7 +176,7 @@ textarea {
 
 .app {
   display: grid;
-  grid-template-rows: 48px minmax(0, 1fr);
+  grid-template-rows: minmax(48px, auto) minmax(0, 1fr);
   grid-template-columns: minmax(0, 1fr);
   height: 100%;
 }
@@ -207,7 +209,7 @@ textarea {
   align-items: center;
   gap: 8px;
   font-family: var(--font-caps);
-  font-size: 16px;
+  font-size: calc(16px * var(--text));
   white-space: nowrap;
   text-shadow: 2px 2px 0 var(--wood-dark);
 }
@@ -220,7 +222,7 @@ textarea {
   display: flex;
   gap: 12px;
   margin: 0 auto;
-  min-width: 0;
+  flex-shrink: 0; /* the info chips ellipsize instead; tally buttons must stay readable */
 }
 
 .tally__item {
@@ -232,7 +234,7 @@ textarea {
   color: var(--ink);
   cursor: pointer;
   white-space: nowrap;
-  font-size: 14px;
+  font-size: calc(14px * var(--text));
 }
 
 .tally__item:disabled {
@@ -242,7 +244,7 @@ textarea {
 
 .tally__n {
   font-family: var(--font-caps);
-  font-size: 13px;
+  font-size: calc(13px * var(--text));
 }
 
 .tally__item--need.is-on {
@@ -278,7 +280,7 @@ textarea {
   background: var(--paper);
   color: var(--ink);
   cursor: pointer;
-  font-size: 14px;
+  font-size: calc(14px * var(--text));
   white-space: nowrap;
   user-select: none;
 }
@@ -324,9 +326,22 @@ textarea {
   align-self: flex-start;
 }
 
+a.btn {
+  text-decoration: none;
+  -webkit-app-region: no-drag;
+}
+
+/* The demo's way out to the repo: warm gold on the wood, same pixel frame as every button. */
+.btn--github {
+  background: var(--gold-bg);
+  color: var(--ink);
+  font-family: var(--font-caps);
+  font-size: calc(12px * var(--text));
+}
+
 .btn--small {
   padding: 2px 8px;
-  font-size: 13px;
+  font-size: calc(13px * var(--text));
 }
 
 .pxbtn--icon {
@@ -334,7 +349,7 @@ textarea {
   height: 34px;
   padding: 0;
   font-family: var(--font-caps);
-  font-size: 18px;
+  font-size: calc(18px * var(--text));
 }
 
 .icon-btn {
@@ -345,7 +360,7 @@ textarea {
   background: var(--wilt);
   color: #fff;
   font-family: var(--font-caps);
-  font-size: 16px;
+  font-size: calc(16px * var(--text));
   line-height: 1;
   cursor: pointer;
   box-shadow:
@@ -378,7 +393,7 @@ textarea {
   gap: 5px;
   margin: 2px;
   padding: 0 7px;
-  font-size: 13px;
+  font-size: calc(13px * var(--text));
   background: var(--paper);
   color: var(--ink);
   white-space: nowrap;
@@ -388,7 +403,7 @@ textarea {
   background: var(--gold-bg);
   color: var(--ink);
   font-family: var(--font-caps);
-  font-size: 11px;
+  font-size: calc(11px * var(--text));
   text-shadow: none;
 }
 
@@ -424,13 +439,13 @@ textarea {
 }
 
 .small {
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--text));
   line-height: 1.4;
 }
 
 .mono {
   font-family: var(--mono);
-  font-size: 16px;
+  font-size: calc(16px * var(--text));
 }
 
 /* ---------- the garden view ---------- */
@@ -485,7 +500,7 @@ textarea {
   pointer-events: auto;
   background: rgba(43, 34, 51, 0.88);
   color: #fff8e4;
-  font-size: 13px;
+  font-size: calc(13px * var(--text));
   line-height: 1.15;
   white-space: nowrap;
   cursor: pointer;
@@ -498,14 +513,14 @@ textarea {
 
 .nametag__name {
   font-family: var(--font-caps);
-  font-size: 11px;
+  font-size: calc(11px * var(--text));
   max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .nametag__meta {
-  font-size: 12px;
+  font-size: calc(12px * var(--text));
   color: #d8ccb6;
 }
 
@@ -529,7 +544,7 @@ textarea {
 .nametag--bed .nametag__meta {
   color: #fff0d0;
   text-shadow: none;
-  font-size: 12px;
+  font-size: calc(12px * var(--text));
 }
 
 .nametag--bed.is-active {
@@ -570,7 +585,7 @@ textarea {
   pointer-events: none;
   background: var(--ink);
   color: #fff8e4;
-  font-size: 13px;
+  font-size: calc(13px * var(--text));
   white-space: nowrap;
 }
 
@@ -599,7 +614,7 @@ textarea {
   margin: 0 0 12px;
   padding: 6px 14px;
   font-family: var(--font-caps);
-  font-size: 15px;
+  font-size: calc(15px * var(--text));
   font-weight: 400;
   background: var(--title);
   color: var(--title-ink);
@@ -662,7 +677,7 @@ textarea {
   margin: 0;
   font-family: var(--font-caps);
   font-weight: 400;
-  font-size: 15px;
+  font-size: calc(15px * var(--text));
   text-shadow: 2px 2px 0 var(--accent-dark);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -675,7 +690,7 @@ textarea {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: calc(13px * var(--text));
   color: #dff0d6;
 }
 
@@ -729,13 +744,13 @@ textarea {
 
 .status__label {
   font-family: var(--font-caps);
-  font-size: 12px;
+  font-size: calc(12px * var(--text));
 }
 
 .status__detail {
   margin-top: 2px;
   font-family: var(--mono);
-  font-size: 16px;
+  font-size: calc(16px * var(--text));
   color: var(--ink-2);
   white-space: nowrap;
   overflow: hidden;
@@ -746,7 +761,7 @@ textarea {
 .status__detail--wrap {
   white-space: pre-wrap;
   font-family: var(--font);
-  font-size: 14px;
+  font-size: calc(14px * var(--text));
 }
 
 .meta {
@@ -756,7 +771,7 @@ textarea {
   gap: 4px 12px;
   padding: 8px 14px;
   color: var(--muted);
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--text));
 }
 
 .panel__scroll .meta {
@@ -765,13 +780,13 @@ textarea {
 
 .meta__model {
   font-family: var(--mono);
-  font-size: 15px;
+  font-size: calc(15px * var(--text));
 }
 
 .mode-select {
   margin: 2px 2px 2px auto;
   padding: 1px 6px;
-  font-size: 13px;
+  font-size: calc(13px * var(--text));
   background: var(--paper);
   color: var(--ink);
 }
@@ -795,11 +810,11 @@ textarea {
   align-items: center;
   gap: 6px;
   font-family: var(--font-caps);
-  font-size: 12px;
+  font-size: calc(12px * var(--text));
 }
 
 .ask__reason {
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--text));
   color: var(--ink-2);
 }
 
@@ -811,7 +826,7 @@ textarea {
   background: #241d2c;
   color: #e8f6d0;
   font-family: var(--mono);
-  font-size: 16px;
+  font-size: calc(16px * var(--text));
   line-height: 1.15;
   white-space: pre-wrap;
   word-break: break-word;
@@ -892,7 +907,7 @@ textarea {
 }
 
 .option__desc {
-  font-size: 13px;
+  font-size: calc(13px * var(--text));
   color: var(--ink-2);
 }
 
@@ -940,13 +955,13 @@ textarea {
 .j--thinking summary {
   cursor: pointer;
   color: var(--muted);
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--text));
 }
 
 .j__thought {
   white-space: pre-wrap;
   color: var(--ink-2);
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--text));
   padding: 4px 0 0 10px;
   border-left: 2px dashed var(--muted);
 }
@@ -971,14 +986,14 @@ textarea {
 .tool-name {
   flex: none;
   font-family: var(--font-caps);
-  font-size: 11px;
+  font-size: calc(11px * var(--text));
 }
 
 .tool-summary {
   flex: 1;
   min-width: 0;
   font-family: var(--mono);
-  font-size: 16px;
+  font-size: calc(16px * var(--text));
   color: var(--ink-2);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1034,7 +1049,7 @@ textarea {
   align-self: center;
   margin: 2px;
   padding: 1px 10px;
-  font-size: 13px;
+  font-size: calc(13px * var(--text));
   background: var(--gold-bg);
   color: #2b2233;
 }
@@ -1048,7 +1063,7 @@ textarea {
 
 .j--system {
   align-self: center;
-  font-size: 13px;
+  font-size: calc(13px * var(--text));
   color: var(--muted);
   text-align: center;
 }
@@ -1063,7 +1078,7 @@ textarea {
 
 .md .md-h {
   font-family: var(--font-caps);
-  font-size: 12px;
+  font-size: calc(12px * var(--text));
 }
 
 .md ul,
@@ -1078,7 +1093,7 @@ textarea {
 
 .md code {
   font-family: var(--mono);
-  font-size: 16px;
+  font-size: calc(16px * var(--text));
   padding: 0 4px;
   background: var(--paper-3);
 }
@@ -1104,7 +1119,7 @@ textarea {
 
 .composer__hint {
   margin-right: auto;
-  font-size: 12px;
+  font-size: calc(12px * var(--text));
   color: var(--muted);
 }
 
@@ -1119,7 +1134,7 @@ textarea {
 .card h3 {
   margin: 0 0 4px;
   font-family: var(--font-caps);
-  font-size: 13px;
+  font-size: calc(13px * var(--text));
   font-weight: 400;
 }
 
@@ -1163,7 +1178,7 @@ textarea {
   display: grid;
   place-items: center;
   font-family: var(--font-caps);
-  font-size: 12px;
+  font-size: calc(12px * var(--text));
 }
 
 .check--ok .check__icon::after {
@@ -1186,7 +1201,7 @@ textarea {
 }
 
 .check__found {
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--text));
   color: var(--ink-2);
   word-break: break-word;
 }
@@ -1222,7 +1237,7 @@ textarea {
 }
 
 .chore__meta {
-  font-size: 13px;
+  font-size: calc(13px * var(--text));
   color: var(--ink-2);
 }
 
@@ -1256,7 +1271,7 @@ textarea {
 
 .plant-row__status {
   margin-left: auto;
-  font-size: 13px;
+  font-size: calc(13px * var(--text));
   color: var(--muted);
   white-space: nowrap;
 }
@@ -1310,7 +1325,7 @@ textarea {
   padding: 7px 14px;
   font-family: var(--font-caps);
   font-weight: 400;
-  font-size: 15px;
+  font-size: calc(15px * var(--text));
   background: var(--title);
   color: var(--title-ink);
   text-shadow: 2px 2px 0 var(--accent-dark);
@@ -1331,7 +1346,7 @@ textarea {
 
 .field > span {
   font-family: var(--font-caps);
-  font-size: 11px;
+  font-size: calc(11px * var(--text));
   color: var(--ink-2);
 }
 
@@ -1375,7 +1390,7 @@ textarea {
 }
 
 .mode__hint {
-  font-size: 13px;
+  font-size: calc(13px * var(--text));
   color: var(--ink-2);
 }
 
@@ -1393,7 +1408,7 @@ textarea {
   padding: 2px 8px;
   background: var(--paper);
   cursor: pointer;
-  font-size: 14px;
+  font-size: calc(14px * var(--text));
 }
 
 .species__opt--on {
@@ -1432,13 +1447,21 @@ html.paused *::after {
   animation-play-state: paused !important;
 }
 
+/* Motion setting: "Reduce motion" (html.motion-reduce) or the OS preference, unless "Allow motion". */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  html:not(.motion-allow) *,
+  html:not(.motion-allow) *::before,
+  html:not(.motion-allow) *::after {
     animation: none !important;
     transition: none !important;
   }
+}
+
+html.motion-reduce *,
+html.motion-reduce *::before,
+html.motion-reduce *::after {
+  animation: none !important;
+  transition: none !important;
 }
 
 @media (max-width: 1180px) {
@@ -1476,7 +1499,7 @@ html.paused *::after {
 
 .topbar__toggle {
   padding: 3px 9px;
-  font-size: 13px;
+  font-size: calc(13px * var(--text));
 }
 
 .topbar__toggle.is-on {
@@ -1523,7 +1546,7 @@ html.paused *::after {
   background: var(--paper-2);
   color: var(--ink);
   font-family: var(--font-caps);
-  font-size: 11px;
+  font-size: calc(11px * var(--text));
   cursor: pointer;
 }
 
@@ -1541,7 +1564,7 @@ html.paused *::after {
 
 .plot__kind {
   font-family: var(--font-caps);
-  font-size: 11px;
+  font-size: calc(11px * var(--text));
   color: var(--ink);
 }
 
@@ -1615,7 +1638,7 @@ a.chip:hover {
   background: var(--paper-3);
   color: var(--ink);
   font-family: var(--font-caps);
-  font-size: 11px;
+  font-size: calc(11px * var(--text));
   cursor: pointer;
 }
 
@@ -1651,7 +1674,7 @@ a.chip:hover {
 .chip--tag {
   background: var(--gold-bg);
   font-family: var(--mono);
-  font-size: 15px;
+  font-size: calc(15px * var(--text));
 }
 
 .chip--tag .linkish {
@@ -1733,7 +1756,7 @@ a.chip:hover {
 
 .stake-row input {
   flex: 1;
-  font-size: 16px;
+  font-size: calc(16px * var(--text));
 }
 
 /* ---------- sow dialog additions ---------- */
@@ -1783,7 +1806,7 @@ a.chip:hover {
   margin: 0;
   font-family: var(--font-caps);
   font-weight: 400;
-  font-size: 14px;
+  font-size: calc(14px * var(--text));
   text-shadow: 2px 2px 0 var(--accent-dark);
 }
 
@@ -1815,7 +1838,7 @@ a.chip:hover {
 
 .chip--filter {
   cursor: pointer;
-  font-size: 12px;
+  font-size: calc(12px * var(--text));
 }
 
 .chip--filter.is-on {
@@ -1835,7 +1858,7 @@ a.chip:hover {
   padding-top: 3px;
   padding-bottom: 3px;
   font-family: var(--font-caps);
-  font-size: 10px;
+  font-size: calc(10px * var(--text));
   color: var(--ink-2);
   border-bottom: 2px solid var(--ink);
 }
@@ -1860,7 +1883,7 @@ a.chip:hover {
   position: absolute;
   left: 0;
   right: 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--text));
   white-space: nowrap;
   cursor: pointer;
   border-bottom: 1px solid var(--paper-3);
@@ -1888,11 +1911,11 @@ a.chip:hover {
   gap: 8px;
   background: var(--paper-3);
   font-family: var(--font-caps);
-  font-size: 11px;
+  font-size: calc(11px * var(--text));
 }
 
 .crow--bed .mood {
-  font-size: 11px;
+  font-size: calc(11px * var(--text));
 }
 
 .crow__caret {
@@ -1906,14 +1929,14 @@ a.chip:hover {
 
 .crow__counts {
   font-family: var(--font);
-  font-size: 12px;
+  font-size: calc(12px * var(--text));
 }
 
 .crow__status {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
+  font-size: calc(12px * var(--text));
 }
 
 .crow__dot {
@@ -1948,7 +1971,7 @@ a.chip:hover {
 
 .crow__plot {
   font-family: var(--mono);
-  font-size: 15px;
+  font-size: calc(15px * var(--text));
   color: var(--ink-2);
 }
 
@@ -1976,7 +1999,7 @@ a.chip:hover {
 .palette__input {
   margin: 10px;
   padding: 6px 10px;
-  font-size: 16px;
+  font-size: calc(16px * var(--text));
   background: var(--paper);
   color: var(--ink);
 }
@@ -1991,7 +2014,7 @@ a.chip:hover {
 .palette__group {
   padding: 6px 12px 2px;
   font-family: var(--font-caps);
-  font-size: 10px;
+  font-size: calc(10px * var(--text));
   color: var(--ink-2);
 }
 
@@ -2022,7 +2045,7 @@ a.chip:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: calc(13px * var(--text));
   color: var(--ink-2);
 }
 
@@ -2064,6 +2087,12 @@ a.chip:hover {
   }
   .topbar__toggle {
     padding: 3px 6px;
+  }
+  .topbar__actions {
+    gap: 6px;
+  }
+  .topbar__actions .btn {
+    padding: 5px 8px;
   }
 }
 
@@ -2124,5 +2153,180 @@ a.chip:hover {
   .ask__detail,
   .ask__plan {
     max-height: 120px;
+  }
+}
+
+/* ===================== Larger text (Settings → Accessibility) ===================== */
+
+/* Only font sizes scale (--text). These rules keep the chrome inside the 980×640 minimum window:
+   the top bar and composer wrap, the side panel and catalogue widen within a share of the window,
+   and the catalogue drops its Turns and Last columns (still in each row's accessible name). */
+.text-large .topbar {
+  flex-wrap: wrap;
+  row-gap: 4px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+/* The info chips and the composer hint take what is left on their line (ellipsized or wrapped) and only
+   push to a new line when that is less than their basis. */
+.text-large .topbar__info {
+  flex: 1 1 160px;
+}
+
+/* Top bar chips use their compact form (full text in the tooltip), as on narrow windows. */
+.text-large .chip__long {
+  display: none;
+}
+.text-large .chip__short {
+  display: inline;
+}
+
+.text-large .composer__row {
+  flex-wrap: wrap;
+}
+
+.text-large .composer__hint {
+  flex: 1 1 140px;
+}
+
+.text-large .panel {
+  width: min(calc(440px * var(--text)), 45vw);
+}
+
+.text-large .catalogue {
+  width: min(calc(460px * var(--text)), 50vw);
+}
+
+.text-large .app--panel .catalogue {
+  max-width: calc(55vw - 40px);
+}
+
+.text-large :is(.catalogue__cols, .crow:not(.crow--bed)) {
+  grid-template-columns: calc(86px * var(--text)) minmax(0, 1fr) 112px calc(50px * var(--text));
+}
+
+.text-large :is(.catalogue__cols, .crow:not(.crow--bed)) > :is(:nth-child(4), :nth-child(6)) {
+  display: none;
+}
+
+/* ===================== High contrast ===================== */
+
+/* "More contrast": muted text takes the stronger second ink. */
+@media (prefers-contrast: more) {
+  :root {
+    --muted: var(--ink-2);
+  }
+}
+
+/* Windows high contrast (forced colors) drops box-shadow, which draws every pixel frame here. An outline
+   with no offset sits exactly where the shadow frame was, so frames come back in the system's colours
+   without moving anything. States that were only a background colour get a Highlight outline. */
+@media (forced-colors: active) {
+  .px,
+  .btn,
+  .pxbtn,
+  .icon-btn,
+  .chip,
+  .mood,
+  .card,
+  .ask,
+  .dialog,
+  .welcome,
+  .toast,
+  .tally__item,
+  .option,
+  .mode,
+  .chore,
+  .species__opt,
+  .bubble,
+  .tool-line,
+  .status,
+  .mode-select,
+  .ask input,
+  .field input,
+  .field select,
+  .field textarea,
+  .composer textarea,
+  .nametag,
+  .iso__tip,
+  .j--result,
+  .j--error,
+  .ask__detail,
+  .ask__plan,
+  .md pre,
+  .tool-output,
+  .tab,
+  .catalogue__search,
+  .palette,
+  .palette__input,
+  .stake-row select,
+  .stake-row input,
+  .pin-btn,
+  .tab-placeholder,
+  .check__icon,
+  .tool-icon,
+  .v2-win,
+  .v2-card,
+  .v2-notice,
+  .v2-empty,
+  .v2-err,
+  .v2-papertag,
+  .v2-ribbon,
+  .v2-tiebar input,
+  .v2-step,
+  .v2-filelist,
+  .v2-checklist,
+  .v2-preview,
+  .v2-stat,
+  .v2-pool,
+  .v2-hook,
+  .v2-diag,
+  .v2-checkrow__mark,
+  .v2-progress {
+    outline: 2px solid CanvasText;
+    outline-offset: 0;
+  }
+
+  .btn,
+  .pxbtn,
+  .icon-btn,
+  .tally__item,
+  .tab,
+  .pin-btn {
+    outline-color: ButtonText;
+  }
+
+  :is(.btn, .pxbtn, .icon-btn, .tally__item, .tab, .pin-btn):disabled {
+    color: GrayText;
+    outline-color: GrayText;
+  }
+
+  .topbar__toggle.is-on,
+  .pin-btn.is-on,
+  .tab.is-on,
+  .chip--filter.is-on,
+  .crow.is-selected,
+  .palette__item.is-active,
+  .nametag--bed.is-active,
+  .v2-file.is-on {
+    outline: 3px solid Highlight;
+    outline-offset: -3px;
+  }
+
+  .crow.is-active {
+    outline: 2px dashed CanvasText;
+    outline-offset: -2px;
+  }
+
+  /* Status squares carry colour on purpose (a label always sits next to them): keep them as drawn. */
+  .crow__dot,
+  .status__dot {
+    forced-color-adjust: none;
+  }
+
+  html :focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
   }
 }

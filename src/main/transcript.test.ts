@@ -86,7 +86,7 @@ describe("TranscriptTail", () => {
   let dir: string;
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
   const mk = () => {
-    dir = mkdtempSync(join(tmpdir(), "gardener-tail-"));
+    dir = mkdtempSync(join(tmpdir(), "terrarium-tail-"));
     return join(dir, "S.jsonl");
   };
 

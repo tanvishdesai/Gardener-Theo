@@ -1,6 +1,9 @@
 import type { Plant, PoolInfo, Weather } from "../../../shared/types";
 import { focus, getState, isGrowing, isHarvest, nextNeedingYou, openSow, setState, setView, useGarden } from "../store";
 
+/** Where the demo sends people for the source and the desktop app. Keep in step with the git remote. */
+const GITHUB_URL = "https://github.com/tanvishdesai/Terrarium-TD";
+
 let lastCycled: string | undefined;
 
 /** Visit the next plant in a list, so repeated clicks walk the gardener down the row. */
@@ -70,10 +73,10 @@ export function TopBar({ onAddBed }: { onAddBed(): void }) {
           <path fill="#3f8f4f" d="M6 4h1v8H6z" />
           <path fill="#5aa848" d="M5 4h1v8H5z" />
         </svg>
-        <span className="brand__name">Gardener</span>
+        <span className="brand__name">Terrarium</span>
         {demo && (
-          <span className="chip chip--demo" title="Simulated agents. Run the desktop app to grow real ones.">
-            demo
+          <span className="chip chip--demo" title="Interactive browser demo with simulated agents. Click GitHub to get the desktop app for your own repos.">
+            live demo
           </span>
         )}
       </div>
@@ -127,6 +130,11 @@ export function TopBar({ onAddBed }: { onAddBed(): void }) {
         <button className="btn btn--primary" onClick={() => openSow(getState().selection?.kind === "bed" ? getState().selection!.id : "")} disabled={!hasBeds}>
           Sow
         </button>
+        {demo && (
+          <a className="btn btn--github" href={GITHUB_URL} target="_blank" rel="noreferrer" title="View source and download the desktop app on GitHub">
+            ★ GitHub
+          </a>
+        )}
       </div>
     </header>
   );

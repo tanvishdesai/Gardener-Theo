@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { _electron } from "playwright-core";
 
-const root = mkdtempSync(join(tmpdir(), "gardener-e2e-"));
+const root = mkdtempSync(join(tmpdir(), "terrarium-e2e-"));
 const userData = join(root, "data");
 const repo = join(root, "repo");
 const sh = (...args) => execFileSync("git", args, { cwd: repo, stdio: "ignore" });
@@ -25,7 +25,7 @@ const check = (name, ok, detail = "") => {
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const env = { ...process.env, GARDENER_USER_DATA: userData };
+const env = { ...process.env, TERRARIUM_USER_DATA: userData };
 delete env.ELECTRON_RUN_AS_NODE;
 const app = await _electron.launch({ executablePath: join("node_modules", "electron", "dist", process.platform === "win32" ? "electron.exe" : "electron"), args: ["."], env });
 const errors = [];
@@ -37,7 +37,7 @@ try {
   win.on("pageerror", (e) => errors.push(e.message));
   win.on("console", (m) => m.type() === "error" && errors.push(m.text()));
   await win.waitForSelector(".app");
-  const g = (method, ...args) => win.evaluate(([m, a]) => window.gardener[m](...a), [method, args]);
+  const g = (method, ...args) => win.evaluate(([m, a]) => window.terrarium[m](...a), [method, args]);
 
   check("first run screen on a new garden", (await win.locator(".v2-firstrun").count()) === 1);
   await g("setSettings", { onboarded: true });
@@ -71,6 +71,12 @@ try {
   await sleep(300);
   const s = await g("setSettings", { idleMinutes: 12 });
   check("settings saved", s.idleMinutes === 12);
+  await win.getByLabel("Theme").selectOption("dark");
+  await win.getByLabel("Text size").selectOption("150");
+  await sleep(300);
+  const look = await win.evaluate(() => `${document.documentElement.dataset.theme} ${getComputedStyle(document.documentElement).getPropertyValue("--text")}`);
+  const saved = (await g("snapshot")).settings;
+  check("accessibility settings applied and saved", look === "dark 1.5" && saved.theme === "dark" && saved.textSize === 150, `${look} / ${saved.theme} ${saved.textSize}`);
   await win.keyboard.press("Escape");
 
   await g("uproot", plant.id, { deleteBranch: true });

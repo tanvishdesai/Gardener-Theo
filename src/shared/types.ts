@@ -86,7 +86,7 @@ export interface PendingAsk {
 
 /** Where a plant came from. */
 export type PlantOrigin =
-  | "sown" // started from Gardener
+  | "sown" // started from Terrarium
   | "imported" // a past Claude Code session pulled in from history
   | "volunteer"; // a Claude Code session running in a terminal right now (or recently)
 
@@ -362,11 +362,21 @@ export interface Settings {
   onboarded: boolean;
   /** Offer to message the plant when its PR checks fail. */
   wakeOnRedStake: boolean;
+  /** UI text size in percent. Scales the chrome's text only; the garden canvas keeps its whole-number zoom. */
+  textSize: TextSize;
+  /** "system" follows the OS light/dark preference. */
+  theme: "system" | "light" | "dark";
+  /** "system" follows the OS reduced-motion preference. */
+  motion: "system" | "reduce" | "allow";
+  /** Tell screen readers when a plant starts needing you, wilts, or finishes a turn. */
+  announce: boolean;
 }
+
+export type TextSize = 100 | 125 | 150;
 
 export interface HookStatus {
   installed: boolean;
-  /** The exact JSON Gardener adds to ~/.claude/settings.json. */
+  /** The exact JSON Terrarium adds to ~/.claude/settings.json. */
   preview: string;
   settingsPath: string;
   listening: boolean;

@@ -35,7 +35,7 @@ afterAll(async () => {
 });
 
 async function tmp(): Promise<string> {
-  const d = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "gardener-git-")));
+  const d = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "terrarium-git-")));
   temps.push(d);
   return d;
 }
@@ -208,24 +208,24 @@ describe("snapshot", () => {
     await write(r, "debug.log", "noise\n"); // ignored
     await write(r, "ignored/big.bin", "x");
 
-    const s = ok(await snapshot(r, "refs/gardener/p1/1", "turn 1"));
+    const s = ok(await snapshot(r, "refs/terrarium/p1/1", "turn 1"));
     expect(s.head).toBe((await g(r, "rev-parse", "HEAD")).trim());
     expect(await filesAt(r, s.commit)).toEqual([".gitignore", "a.txt", "dir/new.txt", "staged.txt"]);
     expect(await g(r, "show", `${s.commit}:a.txt`)).toBe("alpha 2\n");
-    expect((await g(r, "rev-parse", "refs/gardener/p1/1")).trim()).toBe(s.commit);
+    expect((await g(r, "rev-parse", "refs/terrarium/p1/1")).trim()).toBe(s.commit);
     expect((await g(r, "rev-parse", `${s.commit}^`)).trim()).toBe(s.head);
 
     // A change made outside any tool (a "shell" write) shows up in the next snapshot.
     await write(r, "a.txt", "from bash\n");
-    const s2 = ok(await snapshot(r, "refs/gardener/p1/2", "turn 2"));
+    const s2 = ok(await snapshot(r, "refs/terrarium/p1/2", "turn 2"));
     expect(await g(r, "show", `${s2.commit}:a.txt`)).toBe("from bash\n");
 
     expect(await g(r, "diff", "--cached", "--name-only")).toBe(before.cached);
     expect((await fs.stat(indexPath)).mtimeMs).toBe(before.mtime);
-    expect((await fs.readdir(path.join(r, ".git"))).filter((f) => f.startsWith("gardener-index"))).toEqual([]);
+    expect((await fs.readdir(path.join(r, ".git"))).filter((f) => f.startsWith("terrarium-index"))).toEqual([]);
 
-    await deleteRefs(r, "refs/gardener/p1/");
-    expect(await g(r, "for-each-ref", "refs/gardener/")).toBe("");
+    await deleteRefs(r, "refs/terrarium/p1/");
+    expect(await g(r, "for-each-ref", "refs/terrarium/")).toBe("");
   });
 
   it("works in a linked worktree, in a repo with no commits, and skips non-repos", async () => {
@@ -233,17 +233,17 @@ describe("snapshot", () => {
     const wt = path.join(await tmp(), "pot");
     await createWorktree({ repo: r, path: wt, branch: "garden/s" });
     await write(wt, "pot-only.txt", "p\n");
-    const s = ok(await snapshot(wt, "refs/gardener/w/1", "wt"));
+    const s = ok(await snapshot(wt, "refs/terrarium/w/1", "wt"));
     expect(await filesAt(r, s.commit)).toContain("pot-only.txt");
     expect(await dirtyCount(r)).toBe(0); // main checkout untouched
 
     const empty = await repo({ commit: false });
     await write(empty, "first.txt", "1\n");
-    const e = ok(await snapshot(empty, "refs/gardener/e/1", "empty"));
+    const e = ok(await snapshot(empty, "refs/terrarium/e/1", "empty"));
     expect(e.head).toBe("");
     expect(await filesAt(empty, e.commit)).toEqual(["first.txt"]);
 
-    expect(await snapshot(await tmp(), "refs/gardener/x/1", "nope")).toEqual({ skipped: "not a git repository" });
+    expect(await snapshot(await tmp(), "refs/terrarium/x/1", "nope")).toEqual({ skipped: "not a git repository" });
   });
 
   it("skips embedded repos that have no commit instead of failing", async () => {
@@ -253,7 +253,7 @@ describe("snapshot", () => {
     await g(nested, "init", "-q");
     await write(nested, "x.txt", "x");
     await write(r, "top.txt", "t");
-    const s = ok(await snapshot(r, "refs/gardener/n/1", "nested"));
+    const s = ok(await snapshot(r, "refs/terrarium/n/1", "nested"));
     expect(await filesAt(r, s.commit)).toContain("top.txt");
   });
 });
@@ -264,14 +264,14 @@ describe("diffs and restore", () => {
     await write(r, "rename-me.txt", "line one\nline two\nline three\nline four\n");
     await write(r, "gone.txt", "bye\n");
     await write(r, "img.bin", Buffer.from([0, 1, 2, 3, 0, 255]));
-    const a = ok(await snapshot(r, "refs/gardener/d/1", "a"));
+    const a = ok(await snapshot(r, "refs/terrarium/d/1", "a"));
 
     await fs.rename(path.join(r, "rename-me.txt"), path.join(r, "renamed.txt"));
     await fs.rm(path.join(r, "gone.txt"));
     await write(r, "a.txt", "alpha\nmore\n");
     await write(r, "added.txt", "hi\nthere\n");
     await write(r, "img.bin", Buffer.from([0, 9, 9, 9, 0, 1]));
-    const b = ok(await snapshot(r, "refs/gardener/d/2", "b"));
+    const b = ok(await snapshot(r, "refs/terrarium/d/2", "b"));
 
     const files = (await diffFiles(r, a.commit, b.commit)).sort((x, y) => x.path.localeCompare(y.path));
     expect(files).toEqual([
@@ -294,7 +294,7 @@ describe("diffs and restore", () => {
   it("restoreTo makes the tree byte-identical to the snapshot, removes new files, keeps ignored ones", async () => {
     const r = await repo();
     await write(r, "untracked-then.txt", "u\n");
-    const a = ok(await snapshot(r, "refs/gardener/r/1", "a"));
+    const a = ok(await snapshot(r, "refs/terrarium/r/1", "a"));
     const hashes = async () => {
       const out: Record<string, string> = {};
       for (const f of ["a.txt", "b.txt", "untracked-then.txt"]) out[f] = createHash("sha256").update(await read(r, f)).digest("hex");
@@ -324,7 +324,7 @@ describe("diffs and restore", () => {
     await write(r, "tracked-crlf.txt", crlf);
     await g(r, "add", "tracked-crlf.txt");
     await g(r, "commit", "-q", "-m", "crlf");
-    const a = ok(await snapshot(r, "refs/gardener/c/1", "a"));
+    const a = ok(await snapshot(r, "refs/terrarium/c/1", "a"));
     await write(r, "win.txt", "lf only\n");
     await write(r, "tracked-crlf.txt", "lf only\n");
     await restoreTo(r, a.commit);
@@ -337,7 +337,7 @@ describe("diffs and restore", () => {
     const rel = path.join(...Array.from({ length: 6 }, (_, i) => `deeply-nested-folder-number-${i}-with-a-long-name`), "file-with-a-long-name.txt");
     expect(path.join(r, rel).length).toBeGreaterThan(260);
     await write(r, rel, "deep\n");
-    const a = ok(await snapshot(r, "refs/gardener/l/1", "a"));
+    const a = ok(await snapshot(r, "refs/terrarium/l/1", "a"));
     await write(r, rel, "changed\n");
     await restoreTo(r, a.commit);
     expect((await read(r, rel)).toString()).toBe("deep\n");

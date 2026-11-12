@@ -1,4 +1,4 @@
-# Gardener V2: plan
+# Terrarium V2: plan
 
 Status: agreed, ready to start M0 · 2026-11-11 (see [Decision log](#8-decision-log))
 Scope: isolation (worktrees), checkpoints and revert, diff review, commit and PR flow, scale, storage, dense mode, usage view, sessions started outside the app, and a soil report that runs checks. Other providers and adapters are out of scope.
@@ -9,9 +9,9 @@ This document is the contract for V2. Each milestone below has a goal, a design,
 
 ## 1. What V2 must be
 
-Gardener V1 is a good idea in prototype form. V2 has to be a tool developers trust with real repositories, real money and hundreds of sessions. That means three things, in this order:
+Terrarium V1 is a good idea in prototype form. V2 has to be a tool developers trust with real repositories, real money and hundreds of sessions. That means three things, in this order:
 
-1. **It never loses or damages work.** Agents are isolated from each other and from your checkout. Every turn can be inspected and undone. Gardener's own state survives crashes.
+1. **It never loses or damages work.** Agents are isolated from each other and from your checkout. Every turn can be inspected and undone. Terrarium's own state survives crashes.
 2. **It stays fast at real volume.** Cost scales with what is on screen and alive, not with everything you have ever done.
 3. **The garden carries information, and the tool stays plain.** Every garden visual has a plain label next to it saying what it is (the V1 rule). Serious tasks like reading a diff or writing a commit get a serious interface, framed in the pixel chrome but never made worse for the sake of the theme.
 
@@ -57,13 +57,13 @@ Each decision is short here and expanded in its milestone.
 | # | Decision | Why | Rejected alternative |
 | --- | --- | --- | --- |
 | D1 | **SQLite via `node:sqlite`** (WAL, FTS5) in the main process; heavy scans in a `worker_thread` with its own read connection | Checked inside our Electron 45 (Node 24.22, SQLite 3.53): no flag, WAL and FTS5 work. No native module to rebuild per platform. | better-sqlite3 (native ABI rebuild for every Electron upgrade, no benefit); keeping JSON files |
-| D2 | **Mutable tables plus an append-only journal, not full event sourcing** | T3 Code event-sources because it syncs many clients (web, mobile, remote) and replays projections. Gardener is a single-client desktop app. Transactions, migrations and append-only entries give us crash safety and history without CQRS overhead. All writes still go through one `Store` API, so an event log can be added later without touching callers. | T3-style events + projections + outbox (cost without a need) |
+| D2 | **Mutable tables plus an append-only journal, not full event sourcing** | T3 Code event-sources because it syncs many clients (web, mobile, remote) and replays projections. Terrarium is a single-client desktop app. Transactions, migrations and append-only entries give us crash safety and history without CQRS overhead. All writes still go through one `Store` API, so an event log can be added later without touching callers. | T3-style events + projections + outbox (cost without a need) |
 | D3 | **System `git` through `execFile`** with argument arrays, behind one queued Git service | Exact semantics for worktrees, plumbing and diffs. Claude Code on Windows already needs Git, so it's present. | isomorphic-git (no worktrees, slow); dugite (+tens of MB, only worth it if git is missing) |
 | D4 | **Each plant can live in its own git worktree ("potted"), sown there from its first turn** | Resuming a session in a worktree of the same repo works. Moving a session between folders leaves absolute root paths in its history, so the agent may edit the main checkout. `projectConfigRoot` points settings and MCP at the bed root while cwd is the worktree. | Moving existing sessions into worktrees (unsafe); relying on Claude's own `--worktree` |
 | D5 | **Checkpoints are git snapshots under hidden refs, using a temporary index**, captured before and after each turn | They catch Bash and subagent edits, which the SDK's own `rewindFiles` misses. Work survives restarts and doesn't fight the agent's `index.lock`. This is the same approach as T3 Code. | SDK `enableFileCheckpointing` (only Edit/Write/NotebookEdit, needs a live process) |
 | D6 | **Conversation rewind with `resumeSessionAt`**, plus `forkSession(upToMessageId)` for "grow a new branch from here" | Supported SDK options; T3 does the same | Replaying history into a new session |
-| D7 | **PRs via `gh` when it's logged in, otherwise the browser compare URL.** Gardener stores no tokens. | Simplest secure path; covers most users | Stored PAT and the REST API (later, only if needed) |
-| D8 | **Watching terminal sessions is layered.** The transcript tailer is always on and needs no setup. A user-wide HTTP hook is an opt-in upgrade, recommended on first run. | Transcripts can't tell "waiting for your permission" from "a long command is running": a pending tool call looks the same either way. The hook's `PermissionRequest` and `Notification` events can, and "needs you" is the most valuable signal Gardener gives. The hook also gives sub-second state instead of up to 3 s. Because it's an upgrade on top of the tailer, nobody's global settings are changed without consent, and the feature works without them. | Hook required (invasive); tailer only (no reliable "needs you" for terminal sessions); command hooks (one process per tool call on Windows) |
+| D7 | **PRs via `gh` when it's logged in, otherwise the browser compare URL.** Terrarium stores no tokens. | Simplest secure path; covers most users | Stored PAT and the REST API (later, only if needed) |
+| D8 | **Watching terminal sessions is layered.** The transcript tailer is always on and needs no setup. A user-wide HTTP hook is an opt-in upgrade, recommended on first run. | Transcripts can't tell "waiting for your permission" from "a long command is running": a pending tool call looks the same either way. The hook's `PermissionRequest` and `Notification` events can, and "needs you" is the most valuable signal Terrarium gives. The hook also gives sub-second state instead of up to 3 s. Because it's an upgrade on top of the tailer, nobody's global settings are changed without consent, and the feature works without them. | Hook required (invasive); tailer only (no reliable "needs you" for terminal sessions); command hooks (one process per tool call on Windows) |
 | D9 | **The garden draws only what is active.** History moves to a dense list, the Seed Catalogue (see M2). | The real fix for volume is bounding what is drawn by design, then optimizing that bounded set. | Drawing 1,000 plants and hoping culling saves us |
 | D10 | **Costs labeled as estimates everywhere**; usage deduped by `messageId:requestId` | The CLI estimates cost client-side. Summing per content block overcounts about 2.4x (T3 found this). | Showing cost as exact |
 | D11 | **The live-process cap is computed from this machine's memory and adapts at runtime** (details in M2e) | Machines differ (8 GB to 64 GB), and so do sessions: a parked process is about 250 MB and a long one can pass 1 GB. A fixed number is wrong on most machines, so admission is based on measured free memory and measured per-process size. | Fixed default cap; total RAM alone (ignores what else is running) |
@@ -73,7 +73,7 @@ Each decision is short here and expanded in its milestone.
 
 These are not just "not yet": they are wrong for this product right now.
 
-- **Remote, web and mobile clients and the WebSocket RPC layer.** Gardener is a desktop app you glance at.
+- **Remote, web and mobile clients and the WebSocket RPC layer.** Terrarium is a desktop app you glance at.
 - **Full event sourcing, the outbox and leases.** See D2.
 - **Provider adapters.** Out of scope.
 - **LLM-generated branch names.** A deterministic `garden/<plant-slug>-<4hex>` is enough. LLM commit and PR text is kept (see M5) because it saves real effort.
@@ -225,7 +225,7 @@ entries_fts USING fts5(text, content='', contentless_delete=1, tokenize='trigram
   - 30 fps only while the camera or gardener moves;
   - the sky is cached and repainted once per phase or minute.
 - **Level of detail:** zoom 1 (new) is a **map view**. Beds are colored blocks with status pips (amber = needs you, green = growing, gold = ready to harvest) and names, so the whole garden fits on screen.
-- **Gardener walk:** teleport with a puff effect when the target is more than 20 tiles away, and walk otherwise.
+- **Terrarium walk:** teleport with a puff effect when the target is more than 20 tiles away, and walk otherwise.
 
 **2c. Renderer state**
 
@@ -254,7 +254,7 @@ entries_fts USING fts5(text, content='', contentless_delete=1, tokenize='trigram
 The pool decides *whether one more Claude process fits right now*, from measurements rather than a fixed number.
 
 - **Measure.**
-  - Gardener starts Claude Code itself through the SDK's `spawnClaudeCodeProcess` option (a plain `child_process.spawn` with the SDK's command, args, cwd, env and signal), so it knows every process ID.
+  - Terrarium starts Claude Code itself through the SDK's `spawnClaudeCodeProcess` option (a plain `child_process.spawn` with the SDK's command, args, cwd, env and signal), so it knows every process ID.
   - Every 30 s, while at least one plant is live, **one** query (`Get-CimInstance Win32_Process`) reads the working-set size of each Claude process and its child tree (bash tools, MCP servers).
   - The per-process estimate `E` is a moving average of the measured sizes, seeded at 600 MB and never below 300 MB.
 - **Admit.** Before starting a process, check `os.freemem()`. On Windows that is "available" physical memory, which includes standby pages.
@@ -307,7 +307,7 @@ The pool decides *whether one more Claude process fits right now*, from measurem
   - `projectConfigRoot` is the bed root, so `.claude/settings*.json`, MCP and hooks match the bed;
   - `blockWritesOutsideWorkingDirectories` is enabled.
 - **Guard command:** a PreToolUse guard rejects Bash commands that `cd` into or name absolute paths in the bed root. This is defense in depth; it is not a security boundary, and the docs say so.
-- **Setup script:** an optional per-bed `gardener.json` at the repo root, or bed settings in the app. For example `{ "pot": { "setup": "npm ci", "env": [".env"] } }`.
+- **Setup script:** an optional per-bed `terrarium.json` at the repo root, or bed settings in the app. For example `{ "pot": { "setup": "npm ci", "env": [".env"] } }`.
   - Copies listed gitignored files (`.env`) from the bed root into the pot.
   - Runs the setup command in the pot with a timeout; output goes to the plant's journal as a "Preparing the pot" system entry.
   - The agent waits for setup by default. An `async` option lets them run side by side.
@@ -341,12 +341,12 @@ The pool decides *whether one more Claude process fits right now*, from measurem
   1. Point `GIT_INDEX_FILE` at a temporary file in the git common dir.
   2. Seed it from the real index, then `read-tree --reset HEAD` (fast path: unchanged files are not rehashed).
   3. `git add -A -- .` with `core.fsmonitor=false core.safecrlf=false` (+`core.longpaths=true` on Windows).
-  4. `write-tree`, then `commit-tree <tree> -p HEAD`, then `update-ref refs/gardener/<plantId>/<n>`.
+  4. `write-tree`, then `commit-tree <tree> -p HEAD`, then `update-ref refs/terrarium/<plantId>/<n>`.
 - **What's captured:** untracked files that aren't ignored. Ignored files (`node_modules`, `.env`) are not captured, and that's stated in the UI.
 - **Locking:** a per-worktree lock serializes capture, diff and restore.
 - **Per-turn diffstat:** `diff --numstat -z before after`, stored in `turns`.
   - If HEAD moved during the turn (the agent committed or pulled), only paths the agent authored count, compared against both HEADs, as T3 does.
-- **Ref cleanup:** delete `refs/gardener/<plantId>/*` on uproot, and refs older than the retention window. T3 doesn't clean these up; we will.
+- **Ref cleanup:** delete `refs/terrarium/<plantId>/*` on uproot, and refs older than the retention window. T3 doesn't clean these up; we will.
 
 **Diff review**
 - **Producing the diff:** `git diff --patch --no-color --no-ext-diff --no-textconv before after`, **streamed per file**:
@@ -398,7 +398,7 @@ The pool decides *whether one more Claude process fits right now*, from measurem
 - **Default-branch guard:** refuse to commit directly to the default branch. Offer "create branch `garden/…`" instead (in-the-bed plants hit this).
 - **Push:** `git push -u origin <branch>`, with errors (auth, rejected, hooks) shown verbatim and explained.
 - **PR (D7):**
-  - With `gh auth status` OK: `gh pr create --base <base> --head <branch> --title … --body-file -`. The body is generated like the commit message, plus a "Gardener" footer listing the turns.
+  - With `gh auth status` OK: `gh pr create --base <base> --head <branch> --title … --body-file -`. The body is generated like the commit message, plus a "Terrarium" footer listing the turns.
   - Otherwise: open the GitHub compare URL in the browser.
   - Non-GitHub remotes get the compare URL where one is known; otherwise the flow stops after push.
 - **PR status:** `gh pr view <n> --json state,reviewDecision,statusCheckRollup,mergeable`, polled with backoff (1 min while checks run, 10 min otherwise, paused when the window is hidden for an hour). At most 2 `gh` processes at a time.
@@ -413,12 +413,12 @@ The pool decides *whether one more Claude process fits right now*, from measurem
 
 ### M6. Volunteers and the Almanac: sessions from outside the app, and usage
 
-**Goal:** Gardener shows *all* your Claude Code work, including sessions in terminals, and what it costs.
+**Goal:** Terrarium shows *all* your Claude Code work, including sessions in terminals, and what it costs.
 
 **Volunteers (D8)**
-- **In the garden:** a session started outside Gardener is a **volunteer**, a plant that sprouted without being sown. It has a wild-flower look and a dashed outline tag. Label: "Volunteer · running in a terminal".
-- **Its state is live** (thinking, tools, waiting), but asks can't be answered from Gardener. They show "Waiting for you in your terminal" with the session's cwd.
-- **"Adopt"** (resume in Gardener) is offered only after the terminal session ends, so two processes never write the same session.
+- **In the garden:** a session started outside Terrarium is a **volunteer**, a plant that sprouted without being sown. It has a wild-flower look and a dashed outline tag. Label: "Volunteer · running in a terminal".
+- **Its state is live** (thinking, tools, waiting), but asks can't be answered from Terrarium. They show "Waiting for you in your terminal" with the session's cwd.
+- **"Adopt"** (resume in Terrarium) is offered only after the terminal session ends, so two processes never write the same session.
 - **Two layers (D8):**
   - **Layer 1, always on, no setup:** the transcript tailer below. Volunteers appear within about 3 s and show their tools and turns. Without the hook, a pending tool call shows as "Busy or waiting in your terminal", because the transcript can't tell the two apart.
   - **Layer 2, the hook:** offered once on first run, and in Settings, with one sentence on what it changes and a preview of the exact JSON added. It gives sub-second updates and a reliable "Waiting for your permission in the terminal" (from `PermissionRequest` and `Notification` with `permission_prompt` or `idle_prompt`). That turns a terminal session into an amber plant that pings you like a sown one.
@@ -426,10 +426,10 @@ The pool decides *whether one more Claude process fits right now*, from measurem
   - "Watch terminal sessions" *merges* (never overwrites) an HTTP hook into `~/.claude/settings.json`, after taking a backup. Events: SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, PermissionRequest, Notification, Stop, SessionEnd.
   - HTTP, not a command hook: a command hook would start a process for every tool call on Windows.
   - The port is fixed (default 47823, changeable), because the URL is written into settings.
-  - If Gardener can't bind the port at startup, it warns, because another program would be receiving the events. Payloads only ever go to `127.0.0.1`.
+  - If Terrarium can't bind the port at startup, it warns, because another program would be receiving the events. Payloads only ever go to `127.0.0.1`.
   - The hook posts to `http://127.0.0.1:<port>/hook` with a random token header.
-  - Gardener always replies with an empty 2xx (a JSON body would count as a decision) and ignores session IDs that belong to its own plants.
-  - There's a one-click uninstall. If Gardener isn't running, the hook fails silently and the terminal keeps working.
+  - Terrarium always replies with an empty 2xx (a JSON body would count as a decision) and ignores session IDs that belong to its own plants.
+  - There's a one-click uninstall. If Terrarium isn't running, the hook fails silently and the terminal keeps working.
 - **Transcript tailer:**
   - For each active volunteer, read `transcript_path` from a stored byte offset, keeping a partial last line, using the lenient parser from `history.ts`.
   - `fs.watch` is treated as a hint, with a 1–2 s poll for active files (Windows reliability). This is also the fallback when the hook isn't installed: scan `~/.claude/projects` for files modified recently.
@@ -463,7 +463,7 @@ The pool decides *whether one more Claude process fits right now*, from measurem
 **Goal:** the soil report stops being a checklist and becomes the feedback loop the README promises. Agents grow against stakes.
 
 - **Stake runs:**
-  - **Configuring:** each bed sets a fast check command (detected from `package.json` scripts like `typecheck`, `test` or `lint`, a Makefile, or `pyproject`; editable; stored in bed settings or `gardener.json`).
+  - **Configuring:** each bed sets a fast check command (detected from `package.json` scripts like `typecheck`, `test` or `lint`, a Makefile, or `pyproject`; editable; stored in bed settings or `terrarium.json`).
   - **When it runs:** after each turn that changed files, in that plant's pot or bed, through the stake queue (2 at a time, with a timeout).
   - **What you see:**
     - Pass: a straight stake with a green tie.
@@ -551,7 +551,7 @@ All answered as of 2026-11-11. See the [Decision log](#8-decision-log). New ques
 | 2026-11-11 | Watching terminal sessions is layered: transcript tailer always on; HTTP hook opt-in, recommended on first run | Claude (asked to decide) | D8. The hook is the only reliable way to know a terminal session is waiting for permission; making it optional keeps global settings untouched without consent |
 | 2026-11-11 | Live-process cap is computed from measured free memory and per-process size, with a user-settable maximum but no fixed default | User (requirement), Claude (method) | D11, M2e |
 | 2026-11-11 | V2.0 ships on Windows only; code stays cross-platform | User | D12, M0 CI, M8 |
-| 2026-11-11 | Pots (worktrees) live in Gardener's data folder: `<userData>/plots/<repo>/…` | User | M3 |
+| 2026-11-11 | Pots (worktrees) live in Terrarium's data folder: `<userData>/plots/<repo>/…` | User | M3 |
 | 2026-11-11 | PRs are GitHub only for V2: `gh` when logged in, otherwise the browser compare URL; other hosts stop after push | User | D7, M5 |
 | 2026-11-11 | History is kept forever; compaction is manual and opt-in only | User | M1 retention |
 | 2026-11-11 | One diff-viewer dependency is allowed (`@pierre/diffs` or `diff2html`, picked by a spike in M4) | User | M4 |
@@ -580,7 +580,7 @@ Research done on 2026-11-11 against T3 Code at commit `c82e1ba`, `@anthropic-ai/
 - Cost tracking: https://code.claude.com/docs/en/agent-sdk/cost-tracking
 - Hosting and process cost: https://code.claude.com/docs/en/agent-sdk/hosting
 
-**Gardener V1 scale audit:** probe script and numbers from 2026-11-11, summarized in section 1.2. The worst case was a bed with 200 plants giving a 28,288 × 14,286 px ground canvas (1.6 GB).
+**Terrarium V1 scale audit:** probe script and numbers from 2026-11-11, summarized in section 1.2. The worst case was a bed with 200 plants giving a 28,288 × 14,286 px ground canvas (1.6 GB).
 
 **Ecosystem:** [T3 Code deep dive](https://flaviocopes.com/t3-code/), [Better Stack on T3 Code](https://betterstack.com/community/guides/ai/t3-code/), [Continuum review](https://continuumcode.ai/guides/t3-code-review/), [parallel-agent tools roundup](https://dev.to/stravukarl/best-tools-for-managing-parallel-ai-coding-agents-in-2026-14l8), [Abralo comparison](https://abralo.com/alternatives).
 
@@ -598,8 +598,9 @@ Research done on 2026-11-11 against T3 Code at commit `c82e1ba`, `@anthropic-ai/
 | M4 | Snapshot ≈ 300 ms regardless of repo size on Windows. | Dominated by ~6 git process starts (~45 ms each). |
 | M5 | PRs via `gh pr create`; T3 uses the REST API. | No stored tokens (D7). |
 | M6 | The Almanac includes subagent transcripts, billed to the parent session; duplicate streamed usage lines keep the largest output count. | Needed to match Claude Code's own `cost-state` totals (matches exactly on real history). |
-| M6 | Sessions whose transcript `entrypoint` starts with `sdk` are never volunteers. | That covers Gardener's own sessions and other SDK apps. |
+| M6 | Sessions whose transcript `entrypoint` starts with `sdk` are never volunteers. | That covers Terrarium's own sessions and other SDK apps. |
 | M8 | Packaged app passes `pathToClaudeCodeExecutable` (claude.exe in `app.asar.unpacked`). | The SDK can't spawn a binary from inside the asar archive. Unpacked build: 706 MB (claude.exe 331 MB). |
 | M1 storage | WAL checkpoints run in a worker thread (`startCheckpointer` in db.ts); the main connection has `wal_autocheckpoint = 0`. | The 60 s soak showed automatic checkpoints (copy WAL + fsync) on the main thread pushing event-loop p99 to 91 ms. With the worker: 26–29 ms. |
 | M1 IPC | Event coalescing moved to `events.ts` (`EventQueue`); flush every 17 ms. | Testable without Electron; 17 ms makes "≤ 60 messages/s" hold by construction (16 ms allowed 62.5). |
 | Budgets | Measured (2026-11-12, this machine): cold start 872 ms median with 1,000 plants (`npm run coldstart`); 30 streaming agents at ~40× realistic load: event-loop p99 26–29 ms, 30–35 IPC msg/s (`npm run soak`, 5 s and 60 s); frames p95 2.8 ms (`npm run bench`). One 60 s run showed a single 882 ms stall that did not reproduce in an instrumented rerun (no store call > 70 ms, no gap > 150 ms); suspected GC or antivirus. | Timing budgets run alone (`npm run soak`), not inside the parallel `npm test`. All three now run in the Windows CI job. |
+| Accessibility (added after M8) | Four settings under Settings → Accessibility: text size (100/125/150%), theme (system/light/dark on `<html data-theme>`), motion (system/reduce/allow, honoured by `useReducedMotion()` and the CSS kill-switch via `html.motion-reduce` / `html.motion-allow`), and screen-reader announcements. Text size scales `font-size` only (`calc(Npx * var(--text))`); at 125/150% the top bar and composer wrap and the side panel and catalogue widen within a share of the window (the catalogue drops its Turns and Last columns; they stay in each row's accessible name). Announcements come from `a11y.ts`: only plants touched by an incoming event are compared (no scans), a burst is held 1 s and said as one sentence, at most one every 5 s. Windows forced colors redraws the box-shadow frames as zero-offset outlines. Appearance settings are mirrored in `localStorage` so the first paint matches before the snapshot. | CSS `zoom` or page zoom would scale the 2px pixel frames to 2.5px (and page zoom changes `devicePixelRatio`, blurring the canvas). Scaling text only keeps every frame on whole pixels. |

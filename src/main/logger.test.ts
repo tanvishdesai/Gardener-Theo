@@ -14,24 +14,24 @@ describe("logger", () => {
   });
 
   it("appends timestamped lines and rotates, keeping `files` old logs", async () => {
-    dir = mkdtempSync(join(tmpdir(), "gardener-log-"));
+    dir = mkdtempSync(join(tmpdir(), "terrarium-log-"));
     log = installLogger(dir, { maxBytes: 300, files: 2 });
     for (let i = 0; i < 40; i++) console.info(`line ${i} ${"x".repeat(20)}`);
     console.error(new Error("kaboom"));
     log.close();
     await new Promise((r) => setTimeout(r, 200));
-    expect(existsSync(join(dir, "gardener.log"))).toBe(true);
-    expect(existsSync(join(dir, "gardener.1.log"))).toBe(true);
-    expect(existsSync(join(dir, "gardener.2.log"))).toBe(true);
-    expect(existsSync(join(dir, "gardener.3.log"))).toBe(false);
-    const current = readFileSync(join(dir, "gardener.log"), "utf8");
+    expect(existsSync(join(dir, "terrarium.log"))).toBe(true);
+    expect(existsSync(join(dir, "terrarium.1.log"))).toBe(true);
+    expect(existsSync(join(dir, "terrarium.2.log"))).toBe(true);
+    expect(existsSync(join(dir, "terrarium.3.log"))).toBe(false);
+    const current = readFileSync(join(dir, "terrarium.log"), "utf8");
     expect(current).toMatch(/^\d{4}-\d\d-\d\dT[\d:.]+Z ERROR Error: kaboom/m);
-    expect(readFileSync(join(dir, "gardener.1.log"), "utf8")).toContain("INFO line 3");
+    expect(readFileSync(join(dir, "terrarium.1.log"), "utf8")).toContain("INFO line 3");
     expect(log.recent(2)[0]).toContain("line 39");
   });
 
   it("diagnostics redact the home folder and credentials", () => {
-    dir = mkdtempSync(join(tmpdir(), "gardener-log-"));
+    dir = mkdtempSync(join(tmpdir(), "terrarium-log-"));
     log = installLogger(dir);
     console.warn(`could not open ${join(homedir(), "repo")} with token=abc123 sk-ant-api03-secret`);
     const text = diagnostics({ appVersion: "2.0.0", dbBytes: 3 * 1024 * 1024, liveProcesses: 4 });

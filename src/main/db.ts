@@ -1,4 +1,4 @@
-// SQLite for Gardener (PLAN D1/M1): node:sqlite (built into Electron's Node), WAL, forward-only migrations.
+// SQLite for Terrarium (PLAN D1/M1): node:sqlite (built into Electron's Node), WAL, forward-only migrations.
 // One connection, owned by the main process. Everything that writes goes through GardenStore.
 import { DatabaseSync } from "node:sqlite";
 import { Worker } from "node:worker_threads";
@@ -152,7 +152,7 @@ export function startCheckpointer(file: string, everyMs = 1000): Checkpointer {
   const done = new SharedArrayBuffer(4);
   const worker = new Worker(CHECKPOINT_WORKER, { eval: true, workerData: { file, everyMs, done } });
   worker.unref();
-  worker.on("error", (err) => console.error("[gardener] checkpoint worker failed", err));
+  worker.on("error", (err) => console.error("[terrarium] checkpoint worker failed", err));
   let stopped = false;
   return {
     stop() {

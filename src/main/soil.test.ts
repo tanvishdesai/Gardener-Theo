@@ -20,7 +20,7 @@ describe("parseStatus", () => {
 describe("stake candidates", () => {
   let dir: string;
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "gardener-soil-"));
+    dir = mkdtempSync(join(tmpdir(), "terrarium-soil-"));
   });
   afterEach(() => rm(dir, { recursive: true, force: true, maxRetries: 5 }));
   const put = (f: string, s = "") => writeFileSync(join(dir, f), s);
@@ -77,7 +77,7 @@ describe("healthScore", () => {
 describe("readSoil", () => {
   let dir: string;
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "gardener-soil-repo-"));
+    dir = mkdtempSync(join(tmpdir(), "terrarium-soil-repo-"));
   });
   afterEach(() => rm(dir, { recursive: true, force: true, maxRetries: 5 }));
 

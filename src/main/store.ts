@@ -15,7 +15,7 @@ const MAX_BLOB_BYTES = 5 * 1024 * 1024;
 const SHELL_TEXT = 600;
 const COMMIT_MS = 100;
 
-export const INTERRUPTED_POT = "Gardener closed before this pot was ready: its git worktree or setup didn't finish. Send a message to finish preparing it, or uproot it.";
+export const INTERRUPTED_POT = "Terrarium closed before this pot was ready: its git worktree or setup didn't finish. Send a message to finish preparing it, or uproot it.";
 
 export const DEFAULT_SETTINGS: Settings = {
   idleMinutes: 30,
@@ -23,6 +23,10 @@ export const DEFAULT_SETTINGS: Settings = {
   hookPort: 47823,
   onboarded: false,
   wakeOnRedStake: false,
+  textSize: 100,
+  theme: "system",
+  motion: "system",
+  announce: true,
 };
 
 export interface RingMeta {
@@ -127,7 +131,7 @@ export class GardenStore {
       this.dirtyPlants.clear();
       this.db.exec("COMMIT");
     } catch (err) {
-      console.error("[gardener] commit failed; will retry", err);
+      console.error("[terrarium] commit failed; will retry", err);
       try {
         this.db.exec("ROLLBACK");
       } catch {
@@ -451,7 +455,7 @@ export class GardenStore {
     try {
       data = JSON.parse(readFileSync(file, "utf8"));
     } catch (err) {
-      throw new Error(`Could not read the V1 garden at ${file} (${err instanceof Error ? err.message : String(err)}). It was left untouched; fix or move it and start Gardener again.`);
+      throw new Error(`Could not read the V1 garden at ${file} (${err instanceof Error ? err.message : String(err)}). It was left untouched; fix or move it and start Terrarium again.`);
     }
     const journals = join(this.dir, "journals");
     const quiet = this.listeners;
@@ -480,7 +484,7 @@ export class GardenStore {
             try {
               list = JSON.parse(readFileSync(jf, "utf8")) as Entry[];
             } catch {
-              console.error(`[gardener] V1 journal ${jf} unreadable; skipped`);
+              console.error(`[terrarium] V1 journal ${jf} unreadable; skipped`);
             }
             for (const e of list) this.upsertEntry({ ...e, plantId: plant.id });
           }
@@ -495,7 +499,7 @@ export class GardenStore {
       try {
         renameSync(journals, `${journals}.v1.bak`);
       } catch (err) {
-        console.error("[gardener] could not rename V1 journals folder", err);
+        console.error("[terrarium] could not rename V1 journals folder", err);
       }
     }
   }

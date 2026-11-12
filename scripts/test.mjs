@@ -1,4 +1,4 @@
-// Runs vitest on Electron's own Node (24, with node:sqlite + FTS5), the runtime Gardener ships on.
+// Runs vitest on Electron's own Node (24, with node:sqlite + FTS5), the runtime Terrarium ships on.
 // Usage: npm test [-- vitest args]
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";

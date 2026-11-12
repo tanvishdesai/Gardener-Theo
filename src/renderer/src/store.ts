@@ -5,6 +5,7 @@
 import { useSyncExternalStore } from "react";
 import type { Chore } from "../../shared/garden";
 import { urgency } from "../../shared/garden";
+import { Announcer, plantChange, plantState, sentence, speak, type Kind } from "./a11y";
 import type { Bed, Entry, GardenApi, GardenEvent, Plant, PoolInfo, ReviewTag, Ring, Settings, SoilReport, Weather } from "../../shared/types";
 
 export type Selection = { kind: "plant" | "bed"; id: string } | null;
@@ -73,7 +74,17 @@ export interface GardenState {
 
 const ZERO_COUNTS: Counts = { needsYou: 0, growing: 0, harvest: 0, idle: 0, thinking: 0, working: 0, waiting: 0, error: 0, live: 0, queued: 0, total: 0 };
 const DEFAULT_POOL: PoolInfo = { live: 0, canAdmit: 0, ceiling: 0, freeBytes: 0, totalBytes: 0, perProcessBytes: 0, queued: 0 };
-const DEFAULT_SETTINGS: Settings = { idleMinutes: 30, hookInstalled: false, hookPort: 0, onboarded: true, wakeOnRedStake: false };
+export const DEFAULT_SETTINGS: Settings = {
+  idleMinutes: 30,
+  hookInstalled: false,
+  hookPort: 0,
+  onboarded: true,
+  wakeOnRedStake: false,
+  textSize: 100,
+  theme: "system",
+  motion: "system",
+  announce: true,
+};
 
 export function initialState(): GardenState {
   return {
@@ -359,9 +370,38 @@ function focusIds(e: GardenEvent, out: string[]) {
   else if (e.type === "batch") for (const inner of e.events) focusIds(inner, out);
 }
 
+function plantIds(e: GardenEvent, out: Set<string>) {
+  if (e.type === "plant") out.add(e.plant.id);
+  else if (e.type === "plant:patch") out.add(e.id);
+  else if (e.type === "batch") for (const inner of e.events) plantIds(inner, out);
+}
+
+const bedName = (s: GardenState, bedId: string) => s.beds.find((b) => b.id === bedId)?.name ?? "the garden";
+
+// Screen-reader announcements: only for plants this event touched, never a scan of the whole garden.
+const announcer = new Announcer((changes) => {
+  if (!state.settings.announce) return;
+  const items: { kind: Kind; plant: Plant; bed: string }[] = [];
+  for (const [id, kind] of changes) {
+    const plant = state.plants[id];
+    // Already handled (answered, read) before we got to say it: stay quiet.
+    if (plant && plantState(plant) === kind) items.push({ kind, plant, bed: bedName(state, plant.bedId) });
+  }
+  speak(sentence(items));
+});
+
 function dispatch(e: GardenEvent) {
   const prevSel = state.selection;
+  const prev = state;
   setState(reduce(state, [e]));
+  if (prev.ready && state.settings.announce) {
+    const ids = new Set<string>();
+    plantIds(e, ids);
+    for (const id of ids) {
+      const kind = plantChange(prev.plants[id], state.plants[id]);
+      if (kind) announcer.push(id, kind);
+    }
+  }
   // A removed plant or bed may have dropped the selection: stop its journal stream.
   if (prevSel?.kind === "plant" && state.selection === null) void api.closeJournal(prevSel.id).catch(() => {});
   const focuses: string[] = [];

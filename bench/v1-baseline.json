@@ -1,5 +1,5 @@
 {
-  "note": "Gardener V1 (git HEAD 89f038a) garden canvas on syntheticGarden, captured with scripts/bench.mjs against a temporary copy of the V1 renderer (removed). Frame ms = draw() time only. 1440x900, headless Edge.",
+  "note": "Terrarium V1 (git HEAD 89f038a) garden canvas on syntheticGarden, captured with scripts/bench.mjs against a temporary copy of the V1 renderer (removed). Frame ms = draw() time only. 1440x900, headless Edge.",
   "runs": {
     "50": {
       "at": "2026-11-11T06:47:35.859Z",

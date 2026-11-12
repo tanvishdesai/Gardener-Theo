@@ -55,7 +55,7 @@ describe("SoilScheduler", () => {
   };
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "gardener-sched-"));
+    dir = mkdtempSync(join(tmpdir(), "terrarium-sched-"));
     store = new GardenStore(join(dir, "data"));
     clock = new Date(2026, 10, 11, 12).getTime();
   });

@@ -16,14 +16,14 @@ export interface Logger {
 }
 
 /**
- * Mirrors console.log/info/warn/error into <dir>/gardener.log (appended through a write stream).
- * When the file passes maxBytes it is rotated to gardener.1.log … gardener.<files>.log (oldest dropped).
+ * Mirrors console.log/info/warn/error into <dir>/terrarium.log (appended through a write stream).
+ * When the file passes maxBytes it is rotated to terrarium.1.log … terrarium.<files>.log (oldest dropped).
  * Never throws: if the file can't be written, logging carries on in memory and on the console.
  */
 export function installLogger(dir: string, opts: { maxBytes?: number; files?: number } = {}): Logger {
   const maxBytes = opts.maxBytes ?? 5 * 1024 * 1024;
   const files = opts.files ?? 5;
-  const file = join(dir, "gardener.log");
+  const file = join(dir, "terrarium.log");
   let stream: WriteStream | null = null;
   let size = 0;
 
@@ -68,15 +68,15 @@ export function installLogger(dir: string, opts: { maxBytes?: number; files?: nu
     stream = null;
     const shift = () => {
       try {
-        rmSync(join(dir, `gardener.${files}.log`), { force: true });
+        rmSync(join(dir, `terrarium.${files}.log`), { force: true });
         for (let i = files - 1; i >= 1; i--) {
           try {
-            renameSync(join(dir, `gardener.${i}.log`), join(dir, `gardener.${i + 1}.log`));
+            renameSync(join(dir, `terrarium.${i}.log`), join(dir, `terrarium.${i + 1}.log`));
           } catch {
             // that slot was empty
           }
         }
-        renameSync(file, join(dir, "gardener.1.log"));
+        renameSync(file, join(dir, "terrarium.1.log"));
       } catch {
         // keep appending to the same file rather than lose lines
       }
@@ -147,7 +147,7 @@ export function diagnostics(extra: Record<string, unknown> = {}): string {
   const { appVersion, dbBytes, liveProcesses, ...rest } = extra;
   const v = process.versions as Record<string, string | undefined>;
   const lines = [
-    `Gardener diagnostics, ${new Date().toISOString()}`,
+    `Terrarium diagnostics, ${new Date().toISOString()}`,
     `App: ${appVersion ?? "unknown"}`,
     `Electron ${v.electron ?? "-"} · Node ${v.node} · Chrome ${v.chrome ?? "-"} · V8 ${v.v8}`,
     `OS: ${os.type()} ${os.release()} (${process.platform} ${process.arch})`,

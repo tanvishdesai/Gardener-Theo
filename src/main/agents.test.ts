@@ -62,7 +62,7 @@ describe("Greenhouse", () => {
   let dir: string;
   let store: GardenStore;
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "gardener-test-"));
+    dir = mkdtempSync(join(tmpdir(), "terrarium-test-"));
     store = new GardenStore(dir);
     store.putBed({ id: "bed", name: "repo", path: "/work/repo", createdAt: 0 });
   });
@@ -185,7 +185,7 @@ describe("Greenhouse", () => {
   });
 
   it("finishes an interrupted pot before the next turn runs", async () => {
-    const pot = mkdtempSync(join(tmpdir(), "gardener-pot-"));
+    const pot = mkdtempSync(join(tmpdir(), "terrarium-pot-"));
     const { fn, calls } = fakeQuery(async function* () {
       yield success("ok");
     });
@@ -258,8 +258,8 @@ describe("Greenhouse rings (real git)", () => {
   let store: GardenStore;
   const g = (...args: string[]) => execFileSync("git", args, { cwd: repo, encoding: "utf8" });
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "gardener-rings-"));
-    repo = mkdtempSync(join(tmpdir(), "gardener-repo-"));
+    dir = mkdtempSync(join(tmpdir(), "terrarium-rings-"));
+    repo = mkdtempSync(join(tmpdir(), "terrarium-repo-"));
     g("init", "-q", "-b", "main");
     g("config", "user.email", "t@example.com");
     g("config", "user.name", "T");
@@ -316,7 +316,7 @@ describe("Greenhouse rings (real git)", () => {
 });
 
 describe("mainCheckoutGuard", () => {
-  const guard = mainCheckoutGuard("C:\\work\\repo", "C:\\Users\\me\\AppData\\Gardener\\plots\\repo\\fix-1");
+  const guard = mainCheckoutGuard("C:\\work\\repo", "C:\\Users\\me\\AppData\\Terrarium\\plots\\repo\\fix-1");
   const run = (command: string) => guard({ tool_input: { command } } as never, undefined, { signal: new AbortController().signal });
 
   it("refuses commands that name the main checkout", async () => {
@@ -326,6 +326,6 @@ describe("mainCheckoutGuard", () => {
 
   it("allows commands inside the pot or that mention neither", async () => {
     expect(await run("npm test")).toEqual({});
-    expect(await run("ls C:\\Users\\me\\AppData\\Gardener\\plots\\repo\\fix-1\\src")).toEqual({});
+    expect(await run("ls C:\\Users\\me\\AppData\\Terrarium\\plots\\repo\\fix-1\\src")).toEqual({});
   });
 });

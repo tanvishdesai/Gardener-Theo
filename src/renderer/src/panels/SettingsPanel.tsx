@@ -1,4 +1,4 @@
-// Settings: how many agents run, watching terminal sessions (the hook), PR checks, diagnostics.
+// Settings: how many agents run, watching terminal sessions (the hook), PR checks, accessibility, diagnostics.
 import { useEffect, useState } from "react";
 import type { HookStatus, Settings } from "../../../shared/types";
 import { attempt, garden, setState, useGarden } from "../store";
@@ -52,7 +52,7 @@ export function SettingsPanel({ onClose }: { onClose(): void }) {
         <section className="v2-card">
           <h3>Terminal sessions</h3>
           <p className="small">
-            Claude Code sessions you start in a terminal show up as <strong>volunteers</strong>. Gardener always reads their transcripts, with no setup: they appear within a few seconds and show their tools, but
+            Claude Code sessions you start in a terminal show up as <strong>volunteers</strong>. Terrarium always reads their transcripts, with no setup: they appear within a few seconds and show their tools, but
             a session waiting for your permission looks the same as one running a long command.
           </p>
           <HookCard />
@@ -64,6 +64,50 @@ export function SettingsPanel({ onClose }: { onClose(): void }) {
             <input type="checkbox" checked={settings.wakeOnRedStake} onChange={(e) => save({ wakeOnRedStake: e.target.checked })} />
             <span>
               <strong>Wake on a red stake</strong>: when a plant's pull request checks fail, offer to send it a message with the failing checks so it can fix them. Nothing is sent without you.
+            </span>
+          </label>
+        </section>
+
+        <section className="v2-card">
+          <h3>Accessibility</h3>
+          <Choice
+            label="Text size"
+            hint="Larger text in the toolbar, panels, windows and name tags. The garden itself keeps its own zoom (the + and − buttons), so its pixels stay sharp."
+            value={String(settings.textSize)}
+            options={[
+              ["100", "100%"],
+              ["125", "125%"],
+              ["150", "150%"],
+            ]}
+            onChange={(v) => save({ textSize: Number(v) as Settings["textSize"] })}
+          />
+          <Choice
+            label="Theme"
+            hint="Light or dark panels. System follows your computer's setting."
+            value={settings.theme}
+            options={[
+              ["system", "System"],
+              ["light", "Light"],
+              ["dark", "Dark"],
+            ]}
+            onChange={(v) => save({ theme: v as Settings["theme"] })}
+          />
+          <Choice
+            label="Motion"
+            hint="Reduce motion holds every plant, bubble, the weather and the gardener still, and the camera jumps instead of gliding. System follows your computer's setting."
+            value={settings.motion}
+            options={[
+              ["system", "System"],
+              ["reduce", "Reduce motion"],
+              ["allow", "Allow motion"],
+            ]}
+            onChange={(v) => save({ motion: v as Settings["motion"] })}
+          />
+          <label className="v2-check">
+            <input type="checkbox" checked={settings.announce} onChange={(e) => save({ announce: e.target.checked })} />
+            <span>
+              <strong>Announce plant changes</strong>: a screen reader says when a plant needs your permission or an answer, wilts (its turn failed), or blooms (a finished turn is ready to read). Bursts are
+              grouped into one sentence, at most every few seconds.
             </span>
           </label>
         </section>
@@ -102,6 +146,22 @@ export function SettingsPanel({ onClose }: { onClose(): void }) {
         </section>
       </div>
     </Window>
+  );
+}
+
+function Choice({ label, hint, value, options, onChange }: { label: string; hint: string; value: string; options: [string, string][]; onChange(v: string): void }) {
+  return (
+    <label className="field v2-field">
+      <span>{label}</span>
+      <select value={value} onChange={(e) => onChange(e.target.value)}>
+        {options.map(([v, text]) => (
+          <option key={v} value={v}>
+            {text}
+          </option>
+        ))}
+      </select>
+      <small className="muted">{hint}</small>
+    </label>
   );
 }
 
@@ -156,13 +216,13 @@ export function HookCard() {
         <span className={`chip ${status?.installed ? "v2-chip--ok" : ""}`}>{status ? (status.installed ? "installed" : "not installed") : "checking…"}</span>
       </h4>
       <p className="small">
-        This adds one HTTP hook to {status ? <code>{status.settingsPath}</code> : "Claude Code's user settings"}, so Claude Code tells Gardener, on this computer only (127.0.0.1:{port}), the moment a terminal
-        session starts, uses a tool, or is waiting for your permission. Gardener backs up the file first and merges its entry in without touching anything else. You can remove it in one click.
+        This adds one HTTP hook to {status ? <code>{status.settingsPath}</code> : "Claude Code's user settings"}, so Claude Code tells Terrarium, on this computer only (127.0.0.1:{port}), the moment a terminal
+        session starts, uses a tool, or is waiting for your permission. Terrarium backs up the file first and merges its entry in without touching anything else. You can remove it in one click.
       </p>
       {status?.installed && !status.listening && (
         <div className="v2-err small">
           <p>
-            The hook is installed, but Gardener couldn't listen on port {port}, so its events aren't arriving here. Another program may be using that port.
+            The hook is installed, but Terrarium couldn't listen on port {port}, so its events aren't arriving here. Another program may be using that port.
           </p>
         </div>
       )}

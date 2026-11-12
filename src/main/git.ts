@@ -1,4 +1,4 @@
-// GitService: every git and gh call Gardener makes goes through here (PLAN D3).
+// GitService: every git and gh call Terrarium makes goes through here (PLAN D3).
 // System git via execFile with argument arrays (never a shell), behind a bounded queue.
 // CONTRACT FILE: signatures are fixed; implementations are filled in by the M3/M4/M5 work.
 import { execFile } from "node:child_process";
@@ -88,7 +88,7 @@ const GIT_ENV = {
   // Background `git status` (soil checks every few minutes) must not take index.lock in the user's
   // checkout, or their own git commands fail with "index.lock: File exists" (same as VS Code does).
   GIT_OPTIONAL_LOCKS: "0",
-  // Never let an inherited repo/index (e.g. Gardener launched from a git hook) redirect our calls.
+  // Never let an inherited repo/index (e.g. Terrarium launched from a git hook) redirect our calls.
   GIT_DIR: undefined,
   GIT_WORK_TREE: undefined,
   GIT_INDEX_FILE: undefined,
@@ -252,10 +252,10 @@ export async function dirtyCount(cwd: string): Promise<number> {
 // ── Checkpoints (M4) ──────────────────────────────────────────────────────────
 
 const IDENT = {
-  GIT_AUTHOR_NAME: "Gardener",
-  GIT_AUTHOR_EMAIL: "gardener@localhost",
-  GIT_COMMITTER_NAME: "Gardener",
-  GIT_COMMITTER_EMAIL: "gardener@localhost",
+  GIT_AUTHOR_NAME: "Terrarium",
+  GIT_AUTHOR_EMAIL: "terrarium@localhost",
+  GIT_COMMITTER_NAME: "Terrarium",
+  GIT_COMMITTER_EMAIL: "terrarium@localhost",
 };
 
 /**
@@ -281,7 +281,7 @@ export async function snapshot(cwd: string, ref: string, message: string, timeou
     const [common, realIndex] = lines(info.stdout).map((l) => path.resolve(l));
     const head = (await step(["rev-parse", "--verify", "-q", "HEAD"])).stdout.trim();
 
-    tmp = path.join(common, `gardener-index-${randomBytes(8).toString("hex")}`);
+    tmp = path.join(common, `terrarium-index-${randomBytes(8).toString("hex")}`);
     const env = { GIT_INDEX_FILE: tmp, ...IDENT };
     const fail = (r: GitResult) => {
       if (r.code !== 0) throw new Skip(firstLine(r.stderr) || `git exited with code ${r.code}`);
@@ -316,7 +316,7 @@ export async function snapshot(cwd: string, ref: string, message: string, timeou
     if (tmp) await Promise.all([fs.rm(tmp, { force: true }), fs.rm(`${tmp}.lock`, { force: true })]).catch(() => {});
   }
 }
-/** Delete every ref under `prefix` (e.g. "refs/gardener/<plantId>/"). */
+/** Delete every ref under `prefix` (e.g. "refs/terrarium/<plantId>/"). */
 export async function deleteRefs(cwd: string, prefix: string): Promise<void> {
   const refs = lines((await out(cwd, ["for-each-ref", "--format=%(refname)", prefix])) ?? "");
   if (refs.length) must(await git(cwd, ["update-ref", "--stdin"], { input: refs.map((r) => `delete ${r}\n`).join("") }));

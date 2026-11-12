@@ -1,4 +1,4 @@
-# Gardener
+# Terrarium
 
 Electron + React app that draws Claude Code agents as plants in a garden. Repos are beds, agents are plants.
 
@@ -25,7 +25,7 @@ Electron + React app that draws Claude Code agents as plants in a garden. Repos 
 
 ## Conventions
 
-- The renderer only knows `GardenApi` (`window.gardener`). No Node or Electron imports in `src/renderer`.
+- The renderer only knows `GardenApi` (`window.terrarium`). No Node or Electron imports in `src/renderer`.
 - User-facing copy uses the garden vocabulary (bed, plant, sow, water, bloom, wilt, harvest), but always says plainly what is happening underneath (for example "Being watered" sits next to the running command).
 - Pixel art rules: draw on whole pixels only, through `raster.ts` (`px`, `rect`, `poly`, `blit`); never canvas paths, arcs or smoothing, which blur edges. Keep to the palette in `iso/palette.ts`. Zoom stays a whole number.
 - UI chrome: pixel fonts, square corners, the 2px ink frame from `styles.css`. No border-radius, gradients only for wood or sky.

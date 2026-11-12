@@ -21,10 +21,16 @@ import { GardenStore, shell as plantShell } from "./store";
 import { Almanac } from "./usage";
 import { Volunteers } from "./volunteers";
 
-app.setName("Gardener");
-// Tests and second instances can point Gardener at their own data folder.
-if (process.env.GARDENER_USER_DATA) app.setPath("userData", resolve(process.env.GARDENER_USER_DATA));
-// One Gardener per data folder: a second copy would write the same database and run the same sessions.
+app.setName("Terrarium");
+// Tests and second instances can point Terrarium at their own data folder.
+if (process.env.TERRARIUM_USER_DATA) app.setPath("userData", resolve(process.env.TERRARIUM_USER_DATA));
+else {
+  // Renamed from Gardener: keep using an existing garden in place. Moving it would break its pots
+  // (git worktrees are registered by absolute path, and Claude Code finds sessions by cwd).
+  const legacy = join(app.getPath("appData"), "Gardener");
+  if (!existsSync(app.getPath("userData")) && existsSync(legacy)) app.setPath("userData", legacy);
+}
+// One Terrarium per data folder: a second copy would write the same database and run the same sessions.
 // The lock is keyed on userData, so it must be taken after the path is set.
 const firstInstance = app.requestSingleInstanceLock();
 if (!firstInstance) app.quit();
@@ -39,8 +45,8 @@ function adoptShellPath() {
   if (process.platform === "win32") return;
   try {
     const sh = process.env.SHELL || (process.platform === "darwin" ? "/bin/zsh" : "/bin/bash");
-    const out = execFileSync(sh, ["-ilc", 'printf "__GARDENER_PATH__%s" "$PATH"'], { encoding: "utf8", timeout: 4000 });
-    const path = out.split("__GARDENER_PATH__")[1]?.trim();
+    const out = execFileSync(sh, ["-ilc", 'printf "__TERRARIUM_PATH__%s" "$PATH"'], { encoding: "utf8", timeout: 4000 });
+    const path = out.split("__TERRARIUM_PATH__")[1]?.trim();
     if (path) process.env.PATH = path;
   } catch {
     // keep what we have
@@ -133,7 +139,7 @@ function claudeExecutable(): string | undefined {
     const exe = req.resolve(`${pkg}/${process.platform === "win32" ? "claude.exe" : "claude"}`);
     return exe.replace(`app.asar${sep}`, `app.asar.unpacked${sep}`);
   } catch (err) {
-    console.error("[gardener] could not locate the Claude Code binary", err);
+    console.error("[terrarium] could not locate the Claude Code binary", err);
     return undefined;
   }
 }
@@ -148,7 +154,7 @@ function createWindow() {
     height: 920,
     minWidth: 980,
     minHeight: 640,
-    title: "Gardener",
+    title: "Terrarium",
     backgroundColor: "#cfe8e4",
     show: false,
     webPreferences: {
@@ -304,7 +310,7 @@ const handlers: Handlers = {
     return {
       git: { ok: !!version, version: version ?? undefined },
       claude: claudeConfig || process.env.ANTHROPIC_API_KEY ? { ok: true } : { ok: false, note: "Run `claude` once in a terminal and log in with your Claude account." },
-      gh: gh !== null ? { ok: true } : { ok: false, note: "Optional: install GitHub CLI and run `gh auth login` to open pull requests from Gardener." },
+      gh: gh !== null ? { ok: true } : { ok: false, note: "Optional: install GitHub CLI and run `gh auth login` to open pull requests from Terrarium." },
       historySessions: history.sessions,
       historyBeds: history.beds,
     };
@@ -353,7 +359,7 @@ function startServices() {
       soil.markActive(plant.bedId);
       soil.request(plant.bedId, "active");
       const bed = store.beds.get(plant.bedId);
-      if (bed?.stakeCommand && ring?.diff && ring.diff.files > 0) void stakes.run(plant.id, ring.n).catch((err) => console.error("[gardener] stake failed", err));
+      if (bed?.stakeCommand && ring?.diff && ring.diff.files > 0) void stakes.run(plant.id, ring.n).catch((err) => console.error("[terrarium] stake failed", err));
     },
     onNeedsYou: notify,
     onWeather: (w) => {
@@ -373,7 +379,7 @@ function startServices() {
     store,
     uncommitted: (plantId) => greenhouse.diffFiles(plantId, { kind: "uncommitted" }),
     openExternal: (url) => void shell.openExternal(url),
-    wake: (plantId, text) => void greenhouse.send(plantId, text).catch((err) => console.error("[gardener] wake failed", err)),
+    wake: (plantId, text) => void greenhouse.send(plantId, text).catch((err) => console.error("[terrarium] wake failed", err)),
     wakeOnRedStake: () => store.settings().wakeOnRedStake,
     env: () => ({ ...process.env }),
     idle: () => hiddenSince !== null && Date.now() - hiddenSince > 3600_000,
@@ -385,17 +391,17 @@ function startServices() {
   pool.start();
   soil.start();
   harvest.start();
-  void volunteers.start().catch((err) => console.error("[gardener] volunteers failed to start", err));
+  void volunteers.start().catch((err) => console.error("[terrarium] volunteers failed to start", err));
   if (store.settings().hookInstalled) {
     void volunteers.listen(store.settings().hookPort, hookToken()).then((ok) => {
-      if (!ok) console.warn(`[gardener] could not listen on 127.0.0.1:${store.settings().hookPort}; terminal hook events will not arrive (another program may hold the port)`);
+      if (!ok) console.warn(`[terrarium] could not listen on 127.0.0.1:${store.settings().hookPort}; terminal hook events will not arrive (another program may hold the port)`);
     });
   }
   const reaper = setInterval(() => greenhouse.reapIdle(), 60_000);
   reaper.unref();
   const scan = setInterval(() => {
     lastAlmanacScan = Date.now();
-    void almanac.scan().catch((err) => console.error("[gardener] almanac scan failed", err));
+    void almanac.scan().catch((err) => console.error("[terrarium] almanac scan failed", err));
   }, 5 * 60_000);
   scan.unref();
   for (const id of store.beds.keys()) soil.request(id, "idle");
@@ -408,7 +414,7 @@ app.whenReady().then(() => {
   try {
     store = new GardenStore(join(app.getPath("userData"), "garden"));
   } catch (err) {
-    dialog.showErrorBox("Gardener could not open its garden", err instanceof Error ? err.message : String(err));
+    dialog.showErrorBox("Terrarium could not open its garden", err instanceof Error ? err.message : String(err));
     app.quit();
     return;
   }

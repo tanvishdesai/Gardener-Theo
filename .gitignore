@@ -4,3 +4,7 @@ dist
 *.log
 .DS_Store
 bench/results.json
+dist-web
+
+.vercel
+.env*

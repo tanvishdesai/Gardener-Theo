@@ -174,7 +174,7 @@ export class ProcessPool {
 
   start(intervalMs = 30_000) {
     if (this.timer) return;
-    this.timer = setInterval(() => void this.sample().catch((err) => console.error("[gardener] pool sample failed", err)), intervalMs);
+    this.timer = setInterval(() => void this.sample().catch((err) => console.error("[terrarium] pool sample failed", err)), intervalMs);
     this.timer.unref?.();
   }
 

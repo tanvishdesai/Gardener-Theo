@@ -1,5 +1,5 @@
 // Frame counters for the benchmark (scripts/bench.mjs). Only installed with `?perf=1`; otherwise free.
-export interface GardenerPerf {
+export interface TerrariumPerf {
   /** Milliseconds per drawn frame. */
   frames: number[];
   /** Frames drawn. */
@@ -13,13 +13,13 @@ export interface GardenerPerf {
 
 declare global {
   interface Window {
-    __gardenerPerf?: GardenerPerf;
+    __terrariumPerf?: TerrariumPerf;
   }
 }
 
 let calls = 0;
 
-function install(): GardenerPerf {
+function install(): TerrariumPerf {
   const proto = CanvasRenderingContext2D.prototype;
   const fill = proto.fillRect;
   const draw = proto.drawImage;
@@ -31,7 +31,7 @@ function install(): GardenerPerf {
     calls++;
     return (draw as (...x: unknown[]) => void).apply(this, a);
   } as typeof draw;
-  const p: GardenerPerf = {
+  const p: TerrariumPerf = {
     frames: [],
     draws: 0,
     fills: 0,
@@ -40,7 +40,7 @@ function install(): GardenerPerf {
       p.draws = 0;
     },
   };
-  window.__gardenerPerf = p;
+  window.__terrariumPerf = p;
   return p;
 }
 
@@ -57,6 +57,6 @@ export function measured(fn: () => void) {
   perf.fills = calls;
 }
 
-export function perfHooks(): GardenerPerf | null {
+export function perfHooks(): TerrariumPerf | null {
   return perf;
 }

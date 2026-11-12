@@ -27,9 +27,9 @@ describe("Harvest", () => {
   const g = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, encoding: "utf8" });
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "gardener-harvest-"));
-    origin = mkdtempSync(join(tmpdir(), "gardener-origin-"));
-    repo = mkdtempSync(join(tmpdir(), "gardener-hrepo-"));
+    dir = mkdtempSync(join(tmpdir(), "terrarium-harvest-"));
+    origin = mkdtempSync(join(tmpdir(), "terrarium-origin-"));
+    repo = mkdtempSync(join(tmpdir(), "terrarium-hrepo-"));
     g(origin, "init", "-q", "--bare", "-b", "main");
     g(repo, "init", "-q", "-b", "main");
     g(repo, "config", "user.email", "t@example.com");

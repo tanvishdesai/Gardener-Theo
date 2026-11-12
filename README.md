@@ -1,4 +1,4 @@
-# Gardener
+# Terrarium
 
 A desktop garden for your Claude Code agents.
 
@@ -67,7 +67,7 @@ Drag to look around, scroll to pan, Ctrl + scroll (or the + / − buttons) to zo
 
 ## Working in the garden
 
-- **Pots (worktrees).** In a git repo, every new plant grows in its own pot: a git worktree on its own branch (`garden/<name>-<hex>`), kept under Gardener's data folder. Parallel agents never edit the same files, and your checkout stays yours. Choose **In the bed** when sowing to share the working tree instead. An optional `gardener.json` at the repo root prepares each pot: `{ "pot": { "copy": [".env"], "setup": "npm ci" } }`.
+- **Pots (worktrees).** In a git repo, every new plant grows in its own pot: a git worktree on its own branch (`garden/<name>-<hex>`), kept under Terrarium's data folder. Parallel agents never edit the same files, and your checkout stays yours. Choose **In the bed** when sowing to share the working tree instead. An optional `terrarium.json` at the repo root prepares each pot: `{ "pot": { "copy": [".env"], "setup": "npm ci" } }`.
 - **Rings (checkpoints).** Every turn is a growth ring with a git snapshot before and after, including changes made by shell commands. The **Rings** tab shows each ring's diff (unified or split, per file). From any ring you can:
   - **Prune back to here:** restore the files and continue the conversation from that point.
   - **Grow a new branch from here:** start a new pot from that ring.
@@ -82,14 +82,15 @@ Drag to look around, scroll to pan, Ctrl + scroll (or the + / − buttons) to zo
 - **Stakes.** Give a bed a check command, detected from the repo (`npm test`, `npm run typecheck`, `pytest`, `cargo test`, …). It runs after every turn that changed files. A plant whose check fails leans away from its stake, with **Ask the plant to fix it** one click away.
 - **Volunteers.** Claude Code sessions you start in a terminal appear as wild flowers, read live from their transcripts. An optional hook (Settings → Terminal sessions) makes them update instantly and turn amber when they wait for your permission. It merges into `~/.claude/settings.json` and removes cleanly.
 - **Seed Catalogue and search.** Only active plants stand in the ground. Every plant is in the Seed Catalogue (`\`), a list you can filter and walk with the keyboard. `Ctrl+K` searches plant names, branches and the text of every journal.
-- **Almanac.** Cost and tokens per day, bed, model and plant, read from Claude Code's own transcripts. That covers your whole history, not just Gardener's plants. Costs are Claude Code's estimates.
+- **Almanac.** Cost and tokens per day, bed, model and plant, read from Claude Code's own transcripts. That covers your whole history, not just Terrarium's plants. Costs are Claude Code's estimates.
 - **Memory-aware.** How many agents run at once is decided by this machine's free memory, not a fixed number. Extra messages wait for a free pot, and idle plants rest until you message them again.
+- **Accessibility.** Settings → Accessibility has a text size (100%, 125% or 150%; it scales the toolbar, panels, windows and name tags, while the garden keeps its whole-number zoom), a light, dark or system theme, and a motion setting (follow the system, reduce, or allow). With reduced motion every plant, bubble, the weather and the gardener hold still and the camera jumps instead of gliding. A screen reader hears when a plant starts needing you, wilts, or blooms with a finished turn ("Tulip in t3code needs your permission to run a command"); bursts are grouped ("3 plants need you") and spaced at least 5 seconds apart, and the announcements can be turned off. Windows high contrast keeps every frame, button, chip and focus ring visible in the system colours.
 
 ## Running it
 
-You need **Node 22.12 or newer**, git, and Claude Code logged in on this machine. Gardener runs agents through the [Claude Agent SDK](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk), which uses the bundled Claude Code and whatever account Claude Code is logged into. If you have never logged in, run `claude` once in a terminal and log in with your Claude subscription. If `ANTHROPIC_API_KEY` is set in your environment, Claude Code uses that instead.
+You need **Node 22.12 or newer**, git, and Claude Code logged in on this machine. Terrarium runs agents through the [Claude Agent SDK](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk), which uses the bundled Claude Code and whatever account Claude Code is logged into. If you have never logged in, run `claude` once in a terminal and log in with your Claude subscription. If `ANTHROPIC_API_KEY` is set in your environment, Claude Code uses that instead.
 
-The [GitHub CLI](https://cli.github.com) is optional; run `gh auth login` if you want to open pull requests from Gardener.
+The [GitHub CLI](https://cli.github.com) is optional; run `gh auth login` if you want to open pull requests from Terrarium.
 
 ```bash
 npm install
@@ -98,7 +99,7 @@ npm run dev
 
 The first run checks git, Claude Code and `gh`. It offers to import your existing Claude Code sessions and to watch terminal sessions. Then click **Break new ground**, pick a repo folder, and **Sow** an agent.
 
-Gardener keeps its data (a SQLite database, logs and pots) in the app's data folder (`%APPDATA%\Gardener` on Windows). A garden from the first version is migrated automatically and kept as `*.v1.bak`.
+Terrarium keeps its data (a SQLite database, logs and pots) in the app's data folder (`%APPDATA%\Terrarium` on Windows). A garden from the first version is migrated automatically and kept as `*.v1.bak`. If you used it when it was called Gardener, it keeps using your existing `%APPDATA%\Gardener` folder, so your garden, pots and terminal hook carry over.
 
 To preview the interface in a browser with simulated agents (no Electron, no Claude, nothing runs):
 
@@ -139,7 +140,7 @@ src/
     usage.ts         the Almanac: usage and cost from transcripts
     soil.ts, soilScheduler.ts, stakes.ts  repo hygiene, scheduled soil checks, stake runs
     logger.ts        rotating logs and the diagnostics report
-  preload/     exposes the typed GardenApi as window.gardener
+  preload/     exposes the typed GardenApi as window.terrarium
   renderer/    React UI
     store.ts         renderer state, updated incrementally from batched events
     panels/          plant and bed panels, journal, Seed Catalogue, palette, rings, diffs, harvest, Almanac, settings
@@ -188,8 +189,8 @@ Run all three before calling a change done. Also available:
 
 Environment variables:
 
-- `GARDENER_DEBUG=1` prints each Claude Code process's stderr.
-- `GARDENER_USER_DATA=<folder>` runs Gardener on a separate data folder.
+- `TERRARIUM_DEBUG=1` prints each Claude Code process's stderr.
+- `TERRARIUM_USER_DATA=<folder>` runs Terrarium on a separate data folder.
 
 CI (`.github/workflows/ci.yml`) gates on Windows; macOS and Linux run the typecheck and tests without gating.
 
@@ -197,4 +198,4 @@ CI (`.github/workflows/ci.yml`) gates on Windows; macOS and Linux run the typech
 
 - **A signed release.** `npm run dist` is ready but needs the OV code-signing certificate described in [docs/v2/SIGNING.md](docs/v2/SIGNING.md). Until then, `npm run dist:dir` makes an unsigned build.
 - **macOS and Linux packages.** V2.0 ships on Windows first; the code stays cross-platform.
-- **Pull requests on hosts other than GitHub.** Gardener stops after the push there.
+- **Pull requests on hosts other than GitHub.** Terrarium stops after the push there.

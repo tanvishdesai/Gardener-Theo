@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: git config --global user.name "Gardener CI" && git config --global user.email "ci@gardener.invalid"
+      - run: git config --global user.name "Terrarium CI" && git config --global user.email "ci@terrarium.invalid"
         shell: bash
       - name: Tag matches package.json version
         shell: bash

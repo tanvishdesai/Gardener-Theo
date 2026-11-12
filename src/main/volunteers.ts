@@ -3,7 +3,7 @@
 // ~/.claude/settings.json posting to 127.0.0.1 gives exact live state, including "waiting for permission".
 //
 // Ownership rules:
-// - Sessions an app started through the SDK (transcript entrypoint "sdk-…", which includes Gardener's own
+// - Sessions an app started through the SDK (transcript entrypoint "sdk-…", which includes Terrarium's own
 //   plants) and sessions owned by a sown plant are never volunteers.
 // - A session owned by an IMPORTED plant that comes alive in a terminal updates that imported plant in place
 //   (live, watchedBy, status, entries) instead of creating a duplicate; it is not marked `ended` when it stops,
@@ -30,7 +30,10 @@ const PERMISSION_TITLE = "Waiting for your permission in the terminal";
 
 export const HOOK_EVENTS = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Notification", "Stop", "SessionEnd"] as const;
 const TOOL_EVENTS = new Set<string>(["PreToolUse", "PostToolUse", "PermissionRequest"]);
-const TOKEN_HEADER = "X-Gardener-Token";
+const TOKEN_HEADER = "X-Terrarium-Token";
+/** Hooks installed before the rename to Terrarium still count as ours. */
+const LEGACY_TOKEN_HEADER = "X-Gardener-Token";
+const tokenOf = (headers: Record<string, unknown>) => headers[TOKEN_HEADER] ?? headers[LEGACY_TOKEN_HEADER];
 
 export interface VolunteerDeps {
   store: GardenStore;
@@ -79,7 +82,7 @@ function ourGroup(event: string, port: number, token: string) {
   };
 }
 
-/** The exact fragment Gardener merges into settings.json. */
+/** The exact fragment Terrarium merges into settings.json. */
 export function hookFragment(port: number, token: string) {
   return { hooks: Object.fromEntries(HOOK_EVENTS.map((e) => [e, [ourGroup(e, port, token)]])) };
 }
@@ -87,10 +90,10 @@ export function hookFragment(port: number, token: string) {
 const isObj = (v: unknown): v is Record<string, any> => !!v && typeof v === "object" && !Array.isArray(v);
 
 function isOurs(h: any): boolean {
-  return h?.type === "http" && typeof h.url === "string" && /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/hook$/.test(h.url) && isObj(h.headers) && TOKEN_HEADER in h.headers;
+  return h?.type === "http" && typeof h.url === "string" && /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/hook$/.test(h.url) && isObj(h.headers) && tokenOf(h.headers) !== undefined;
 }
 
-/** Remove Gardener's hooks (and the groups, event arrays and `hooks` object left empty by that). Returns whether anything changed. */
+/** Remove Terrarium's hooks (and the groups, event arrays and `hooks` object left empty by that). Returns whether anything changed. */
 function strip(settings: Record<string, any>): boolean {
   if (!isObj(settings.hooks)) return false;
   let changed = false;
@@ -118,7 +121,7 @@ function ourHook(settings: unknown): { port: number; token: string } | null {
     if (!Array.isArray(groups)) continue;
     for (const g of groups) {
       const h = isObj(g) && Array.isArray(g.hooks) ? g.hooks.find(isOurs) : undefined;
-      if (h) return { port: Number(new URL(h.url).port || 80), token: String(h.headers[TOKEN_HEADER]) };
+      if (h) return { port: Number(new URL(h.url).port || 80), token: String(tokenOf(h.headers)) };
     }
   }
   return null;
@@ -138,7 +141,7 @@ function serialize(obj: unknown, like?: string): string {
 }
 
 async function atomicWrite(path: string, text: string) {
-  const tmp = `${path}.gardener-tmp`;
+  const tmp = `${path}.terrarium-tmp`;
   await writeFile(tmp, text, "utf8");
   await rename(tmp, path);
 }
@@ -316,7 +319,7 @@ export class Volunteers {
   }
 
   private read(w: Watch): Promise<void> {
-    w.reading = w.reading.then(() => this.doRead(w)).catch((err) => console.error("[gardener] volunteer read failed", err));
+    w.reading = w.reading.then(() => this.doRead(w)).catch((err) => console.error("[terrarium] volunteer read failed", err));
     return w.reading;
   }
 
@@ -447,7 +450,7 @@ export class Volunteers {
         req.resume();
         return;
       }
-      const got = Buffer.from(String(req.headers[TOKEN_HEADER.toLowerCase()] ?? ""));
+      const got = Buffer.from(String(req.headers[TOKEN_HEADER.toLowerCase()] ?? req.headers[LEGACY_TOKEN_HEADER.toLowerCase()] ?? ""));
       if (got.length !== want.length || !timingSafeEqual(got, want)) {
         res.writeHead(403).end();
         req.resume();
@@ -466,7 +469,7 @@ export class Volunteers {
         try {
           this.handleHook(JSON.parse(Buffer.concat(parts).toString("utf8")) as HookPayload);
         } catch (err) {
-          if (!(err instanceof SyntaxError)) console.error("[gardener] hook event failed", err);
+          if (!(err instanceof SyntaxError)) console.error("[terrarium] hook event failed", err);
         }
       });
     });
@@ -484,7 +487,7 @@ export class Volunteers {
     return !!this.server?.listening;
   }
 
-  /** Port and token of the hook already in settings.json, so Gardener can listen with them after a restart. */
+  /** Port and token of the hook already in settings.json, so Terrarium can listen with them after a restart. */
   async installedHook(): Promise<{ port: number; token: string } | null> {
     try {
       return ourHook(JSON.parse(await readFile(this.settingsPath, "utf8")));
@@ -512,9 +515,9 @@ export class Volunteers {
     try {
       obj = JSON.parse(text.replace(/^﻿/, ""));
     } catch {
-      throw new Error(`${this.settingsPath} is not valid JSON, so Gardener left it untouched. Fix it and try again.`);
+      throw new Error(`${this.settingsPath} is not valid JSON, so Terrarium left it untouched. Fix it and try again.`);
     }
-    if (!isObj(obj)) throw new Error(`${this.settingsPath} is not a JSON object, so Gardener left it untouched.`);
+    if (!isObj(obj)) throw new Error(`${this.settingsPath} is not a JSON object, so Terrarium left it untouched.`);
     return { text, obj };
   }
 
@@ -539,15 +542,15 @@ export class Volunteers {
       return this.result(false, (err as Error).message);
     }
     const { text, obj } = loaded;
-    if (obj.hooks !== undefined && !isObj(obj.hooks)) return this.result(false, `"hooks" in ${this.settingsPath} is not an object, so Gardener left it untouched.`);
-    for (const e of HOOK_EVENTS) if (isObj(obj.hooks) && obj.hooks[e] !== undefined && !Array.isArray(obj.hooks[e])) return this.result(false, `"hooks.${e}" in ${this.settingsPath} is not a list, so Gardener left it untouched.`);
+    if (obj.hooks !== undefined && !isObj(obj.hooks)) return this.result(false, `"hooks" in ${this.settingsPath} is not an object, so Terrarium left it untouched.`);
+    for (const e of HOOK_EVENTS) if (isObj(obj.hooks) && obj.hooks[e] !== undefined && !Array.isArray(obj.hooks[e])) return this.result(false, `"hooks.${e}" in ${this.settingsPath} is not a list, so Terrarium left it untouched.`);
     strip(obj); // an older install (another port or token) is replaced, not duplicated
     obj.hooks ??= {};
     for (const e of HOOK_EVENTS) (obj.hooks[e] ??= []).push(ourGroup(e, port, token));
     const next = serialize(obj, text);
     if (next === text) return this.result(true);
-    const backup = `${this.settingsPath}.gardener-backup`;
-    if (text !== undefined && !existsSync(backup)) await writeFile(backup, text, "utf8");
+    const backup = `${this.settingsPath}.terrarium-backup`;
+    if (text !== undefined && !existsSync(backup) && !existsSync(`${this.settingsPath}.gardener-backup`)) await writeFile(backup, text, "utf8");
     await mkdir(dirname(this.settingsPath), { recursive: true });
     await atomicWrite(this.settingsPath, next);
     return this.result(true);
@@ -562,12 +565,12 @@ export class Volunteers {
     }
     const { text, obj } = loaded;
     if (text === undefined || !strip(obj)) return this.result(false);
-    const backup = `${this.settingsPath}.gardener-backup`;
+    const backup = [`${this.settingsPath}.terrarium-backup`, `${this.settingsPath}.gardener-backup`].find((f) => existsSync(f)) ?? "";
     let backupText: string | undefined;
     try {
       backupText = await readFile(backup, "utf8");
     } catch {
-      // none: Gardener created the file, or the backup was removed
+      // none: Terrarium created the file, or the backup was removed
     }
     let same = false;
     try {

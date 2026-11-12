@@ -1,9 +1,9 @@
-# Packaging for Gardener (PLAN M8). Windows only for V2.0 (D12).
-#   unsigned local build:  npm run build && GARDENER_UNSIGNED=1 npx electron-builder --win --dir -c electron-builder.yml
+# Packaging for Terrarium (PLAN M8). Windows only for V2.0 (D12).
+#   unsigned local build:  npm run build && TERRARIUM_UNSIGNED=1 npx electron-builder --win --dir -c electron-builder.yml
 #   release (CI only):     see .github/workflows/release.yml and docs/v2/RELEASE.md
-appId: com.gardener.app
-productName: Gardener
-copyright: Copyright © 2026 Gardener contributors
+appId: com.terrarium.app
+productName: Terrarium
+copyright: Copyright © 2026 Terrarium contributors
 directories:
   output: dist
   buildResources: build
@@ -31,9 +31,9 @@ nsis:
   perMachine: false
   allowToChangeInstallationDirectory: true
   deleteAppDataOnUninstall: false
-  artifactName: Gardener-Setup-${version}.${ext}
+  artifactName: Terrarium-Setup-${version}.${ext}
 publish:
   provider: github
   owner: tanvishdesai
-  repo: Gardener-Theo
+  repo: Terrarium-TD
   releaseType: draft

@@ -1,5 +1,5 @@
 // Garden renderer benchmark (PLAN M0/M2). Starts the browser demo, drives a scripted 10 s session
-// (pan, zoom, select, idle) and records frame times from `window.__gardenerPerf` (?perf=1).
+// (pan, zoom, select, idle) and records frame times from `window.__terrariumPerf` (?perf=1).
 //
 //   node scripts/bench.mjs                      run, write bench/results.json, compare to bench/baseline.json
 //   node scripts/bench.mjs --baseline           run and write bench/baseline.json
@@ -75,19 +75,19 @@ try {
   const t0 = Date.now();
   await page.goto(url);
   await page.waitForSelector("canvas", { timeout: 60_000 });
-  await page.waitForFunction(() => (window.__gardenerPerf?.draws ?? 0) > 0, null, { timeout: 60_000 });
+  await page.waitForFunction(() => (window.__terrariumPerf?.draws ?? 0) > 0, null, { timeout: 60_000 });
   const firstFrameMs = Date.now() - t0;
   await sleep(1500);
   const box = await page.locator("canvas").first().boundingBox();
   const cx = box.x + box.width / 2;
   const cy = box.y + box.height / 2;
   await page.evaluate(() => {
-    window.__gardenerPerf.reset();
+    window.__terrariumPerf.reset();
     window.__longtasks = [];
   });
 
   // 1. select a plant
-  const target = await page.evaluate(() => window.__gardenerPerf.visiblePlant?.() ?? null);
+  const target = await page.evaluate(() => window.__terrariumPerf.visiblePlant?.() ?? null);
   await page.mouse.click(target ? box.x + target.x : cx, target ? box.y + target.y : cy);
   await sleep(800);
   // 2. drag-pan in several directions
@@ -110,17 +110,17 @@ try {
   }
   await page.keyboard.up("Control");
   await sleep(500);
-  const interact = await page.evaluate(() => ({ frames: [...window.__gardenerPerf.frames], fills: window.__gardenerPerf.fills }));
+  const interact = await page.evaluate(() => ({ frames: [...window.__terrariumPerf.frames], fills: window.__terrariumPerf.fills }));
   // 4. idle
   await page.mouse.move(box.x + 5, box.y + box.height - 5);
   await sleep(300);
   const d0 = await page.evaluate(() => {
-    const p = window.__gardenerPerf;
+    const p = window.__terrariumPerf;
     return { draws: p.draws, n: p.frames.length };
   });
   await sleep(3000);
   const end = await page.evaluate(() => {
-    const p = window.__gardenerPerf;
+    const p = window.__terrariumPerf;
     return { draws: p.draws, frames: p.frames, fills: p.fills, longtasks: window.__longtasks, heap: performance.memory?.usedJSHeapSize ?? null };
   });
   const idleFrames = end.frames.slice(d0.n);

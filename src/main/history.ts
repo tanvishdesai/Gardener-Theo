@@ -125,7 +125,7 @@ export async function importHistory(store: GardenStore, addBed: (path: string) =
     store.flush();
     added++;
   }
-  console.log(`[gardener] imported ${added} Claude Code sessions from ${root}`);
+  console.log(`[terrarium] imported ${added} Claude Code sessions from ${root}`);
   return { added };
 }
 

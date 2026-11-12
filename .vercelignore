@@ -1,0 +1,8 @@
+brag-output
+.agents
+.claude
+out
+dist
+dist-web
+bench/results.json
+*.log

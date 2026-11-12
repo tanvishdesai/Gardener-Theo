@@ -241,7 +241,7 @@ export function HarvestFlow({ plant }: { plant: Plant }) {
             (plant.plot === "bed" ? (
               <div className="v2-notice small">
                 <p>
-                  <strong>{branch} is the repo's default branch.</strong> Gardener won't commit straight to it. Instead it will create a new branch named <code>garden/…</code> after this plant (git switch -c
+                  <strong>{branch} is the repo's default branch.</strong> Terrarium won't commit straight to it. Instead it will create a new branch named <code>garden/…</code> after this plant (git switch -c
                   garden/…), commit there, and leave {branch} untouched.
                 </p>
                 <label className="v2-check">
@@ -251,7 +251,7 @@ export function HarvestFlow({ plant }: { plant: Plant }) {
             ) : (
               <div className="v2-err">
                 <p>
-                  <strong>This pot is on {branch}, the repo's default branch.</strong> Gardener won't commit straight to the default branch. Switch the pot to its own branch (ask the plant to run{" "}
+                  <strong>This pot is on {branch}, the repo's default branch.</strong> Terrarium won't commit straight to the default branch. Switch the pot to its own branch (ask the plant to run{" "}
                   <code>git switch -c your-branch</code>), then come back.
                 </p>
               </div>
@@ -297,7 +297,7 @@ export function HarvestFlow({ plant }: { plant: Plant }) {
 
           {info.hasRemote && !isGitHub(info.remoteUrl) && (
             <p className="small">
-              This remote isn't on GitHub, so Gardener stops after the push. Open the merge or pull request on your git host's website.
+              This remote isn't on GitHub, so Terrarium stops after the push. Open the merge or pull request on your git host's website.
             </p>
           )}
 
@@ -305,7 +305,7 @@ export function HarvestFlow({ plant }: { plant: Plant }) {
             <div className="v2-subbox">
               <h4>Open a pull request</h4>
               <p className="v2-git">
-                {info.ghReady ? `gh pr create --base ${info.base ?? "<default>"} --head ${branch}` : "GitHub CLI (gh) isn't logged in, so Gardener opens GitHub's compare page in your browser instead."}
+                {info.ghReady ? `gh pr create --base ${info.base ?? "<default>"} --head ${branch}` : "GitHub CLI (gh) isn't logged in, so Terrarium opens GitHub's compare page in your browser instead."}
               </p>
               <label className="field">
                 <span>Title</span>

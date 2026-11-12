@@ -37,7 +37,7 @@ export interface ParsedSummary {
   lastActivity?: { activity: Activity; detail: string };
   /** What the session looks like it is doing, from the last lines: a turn running a tool, the model working, or resting. */
   phase: "idle" | "thinking" | "working";
-  /** "cli" for a terminal, "sdk-…" for sessions an app (Gardener included) started through the SDK. */
+  /** "cli" for a terminal, "sdk-…" for sessions an app (Terrarium included) started through the SDK. */
   entrypoint?: string;
 }
 

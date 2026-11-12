@@ -5,6 +5,6 @@ import { spawnSync } from "node:child_process";
 
 const r = spawnSync(process.execPath, ["scripts/test.mjs", "src/main/soak.test.ts", "--silent=false"], {
   stdio: "inherit",
-  env: { ...process.env, GARDENER_SOAK: "1" },
+  env: { ...process.env, TERRARIUM_SOAK: "1" },
 });
 process.exit(r.status ?? 1);

@@ -62,4 +62,4 @@ api.onEvent = (listener) => {
   return () => ipcRenderer.removeListener("garden:event", wrapped);
 };
 
-contextBridge.exposeInMainWorld("gardener", api);
+contextBridge.exposeInMainWorld("terrarium", api);

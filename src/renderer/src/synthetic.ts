@@ -102,7 +102,7 @@ export function syntheticGarden(o: { beds: number; plants: number; live: number;
     };
     if (p.plot === "pot") {
       p.branch = potBranch(name, Math.floor(r() * 65536).toString(16).padStart(4, "0"));
-      p.worktreePath = `~/.gardener/plots/${p.bedId}/${p.branch.slice(7)}`;
+      p.worktreePath = `~/.terrarium/plots/${p.bedId}/${p.branch.slice(7)}`;
     }
     const roll = r();
     if (live.has(i)) {

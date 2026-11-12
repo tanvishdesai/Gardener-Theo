@@ -102,7 +102,7 @@ export class Harvest {
         if (m.type === "result" && m.subtype === "success") text = m.result;
       }
     } catch (err) {
-      console.error("[gardener] commit message generation failed", err);
+      console.error("[terrarium] commit message generation failed", err);
     }
     return parseCommitMessage(text, fallback);
   }
@@ -144,7 +144,7 @@ export class Harvest {
     if (!branch) throw new Error("Not on a branch, so there is nothing to open a pull request for.");
     const base = def ?? "main";
     if (branch === base) throw new Error(`${base} is the base branch. Commit on a feature branch first.`);
-    const body = `${pr.body.trim()}\n\n---\nOpened from Gardener.`;
+    const body = `${pr.body.trim()}\n\n---\nOpened from Terrarium.`;
     if (remote && (await git.ghReady(cwd))) {
       const made = await git.ghCreatePr(cwd, { base, head: branch, title: pr.title.trim(), body });
       const info: PullRequestInfo = { url: made.url, number: made.number, state: "open", checks: "pending", checkedAt: Date.now() };
@@ -153,7 +153,7 @@ export class Harvest {
       return { url: made.url, viaBrowser: false };
     }
     const url = remote ? git.compareUrl(remote, base, branch) : null;
-    if (!url) throw new Error("This remote isn't on GitHub, so Gardener stopped after pushing. Open the pull request on your git host.");
+    if (!url) throw new Error("This remote isn't on GitHub, so Terrarium stopped after pushing. Open the pull request on your git host.");
     this.deps.openExternal(url);
     this.note(plantId, `Opened GitHub's compare page for ${branch} in your browser.`);
     return { url, viaBrowser: true };
@@ -187,7 +187,7 @@ export class Harvest {
         if (n < 3) {
           this.wakes.set(key, n + 1);
           const logs = await git.failedCheckLogs(cwd, plant.branch, 12_000);
-          this.deps.wake(plant.id, `The pull request's checks are failing. Please look at the failures, fix them, and push again.\n\n${logs || "(Gardener could not read the logs; run the checks locally.)"}`);
+          this.deps.wake(plant.id, `The pull request's checks are failing. Please look at the failures, fix them, and push again.\n\n${logs || "(Terrarium could not read the logs; run the checks locally.)"}`);
         }
       }
     }
@@ -195,7 +195,7 @@ export class Harvest {
 
   start() {
     if (this.timer) return;
-    this.timer = setInterval(() => void this.tick().catch((err) => console.error("[gardener] PR watch failed", err)), 60_000);
+    this.timer = setInterval(() => void this.tick().catch((err) => console.error("[terrarium] PR watch failed", err)), 60_000);
     this.timer.unref?.();
   }
 

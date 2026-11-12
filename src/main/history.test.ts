@@ -39,7 +39,7 @@ describe("importHistory", () => {
   };
 
   beforeEach(() => {
-    tmp = mkdtempSync(join(tmpdir(), "gardener-hist-"));
+    tmp = mkdtempSync(join(tmpdir(), "terrarium-hist-"));
     projects = join(tmp, "projects");
     store = new GardenStore(join(tmp, "data"));
     const folder = join(projects, "C--repo");

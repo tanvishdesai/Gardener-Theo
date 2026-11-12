@@ -12,13 +12,13 @@ Decided in PLAN M8: an **OV** Authenticode certificate from a public CA, with th
 
 `electron-builder.yml` sends every `.exe` through `build/sign.cjs` with SHA-256:
 
-- `Gardener.exe`;
+- `Terrarium.exe`;
 - the unpacked SDK binary `resources/app.asar.unpacked/node_modules/@anthropic-ai/claude-agent-sdk-win32-x64/claude.exe`;
 - the NSIS installer and its uninstaller.
 
 The release workflow then checks each file with `Get-AuthenticodeSignature` and fails if any of them is not `Valid`.
 
-`build/sign.cjs` is vendor-neutral. It runs `SIGN_TOOL_CMD` once per file, with `{file}` replaced by the quoted path, through `cmd.exe`. If `SIGN_TOOL_CMD` is missing, it throws, so a release can't ship unsigned by accident. Set `GARDENER_UNSIGNED=1` to skip signing on purpose (local builds).
+`build/sign.cjs` is vendor-neutral. It runs `SIGN_TOOL_CMD` once per file, with `{file}` replaced by the quoted path, through `cmd.exe`. If `SIGN_TOOL_CMD` is missing, it throws, so a release can't ship unsigned by accident. Set `TERRARIUM_UNSIGNED=1` to skip signing on purpose (local builds).
 
 ## GitHub configuration
 
@@ -72,13 +72,13 @@ Reputation builds per certificate and per file hash as people download the files
 
 ## Testing signing locally
 
-- **Unsigned build:** `npm run build`, then `GARDENER_UNSIGNED=1 npx electron-builder --win --dir -c electron-builder.yml`.
+- **Unsigned build:** `npm run build`, then `TERRARIUM_UNSIGNED=1 npx electron-builder --win --dir -c electron-builder.yml`.
 - **The hook with a throwaway certificate.** This needs signtool from the Windows SDK. In PowerShell:
   ```powershell
-  New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=Gardener Test" -CertStoreLocation Cert:\CurrentUser\My
-  $env:SIGN_TOOL_CMD = 'signtool sign /fd SHA256 /n "Gardener Test" /tr http://timestamp.digicert.com /td SHA256 {file}'
+  New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=Terrarium Test" -CertStoreLocation Cert:\CurrentUser\My
+  $env:SIGN_TOOL_CMD = 'signtool sign /fd SHA256 /n "Terrarium Test" /tr http://timestamp.digicert.com /td SHA256 {file}'
   npx electron-builder --win --dir -c electron-builder.yml
-  Get-AuthenticodeSignature dist\win-unpacked\Gardener.exe   # NotTrusted is expected for a self-signed certificate
+  Get-AuthenticodeSignature dist\win-unpacked\Terrarium.exe   # NotTrusted is expected for a self-signed certificate
   ```
   Delete the test certificate afterwards with `certmgr.msc` (Personal → Certificates).
 - **Real signing** only happens in the `release` workflow. Don't install the production credentials on a laptop.

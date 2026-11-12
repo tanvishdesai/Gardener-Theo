@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { applyAppearance } from "./a11y";
 import { IsoGarden } from "./iso/IsoGarden";
 import { Almanac } from "./panels/Almanac";
 import { BedPanel } from "./panels/BedPanel";
@@ -90,6 +91,11 @@ export function App() {
   useEffect(() => {
     if (plant?.unread && document.hasFocus()) void garden().markRead(plant.id);
   }, [plant?.unread, plant?.id]);
+
+  const settings = useGarden((s) => s.settings);
+  useEffect(() => {
+    if (ready) applyAppearance(settings);
+  }, [ready, settings]);
 
   useEffect(() => {
     window.addEventListener("keydown", onKey);

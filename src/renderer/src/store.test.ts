@@ -1,7 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { urgency } from "../../shared/garden";
-import type { GardenEvent, Plant, PlantStatus } from "../../shared/types";
-import { formatTags, initialState, isGrowing, isHarvest, mergeFresh, needsYou, reduce, type GardenState } from "./store";
+import type { GardenApi, GardenEvent, Plant, PlantStatus, Snapshot } from "../../shared/types";
+import { speak } from "./a11y";
+import { connect, formatTags, initialState, isGrowing, isHarvest, mergeFresh, needsYou, reduce, setState, type GardenState } from "./store";
+
+vi.mock("./a11y", async (orig) => ({ ...(await orig<typeof import("./a11y")>()), speak: vi.fn() }));
 
 const plant = (id: string, bedId: string, at: number, p: Partial<Plant> = {}): Plant => ({
   id,
@@ -108,5 +111,35 @@ describe("review tags", () => {
     expect(
       formatTags([{ id: "t", path: "src/a.ts", startLine: 12, endLine: 18, hunk: "@@ -12,2 +12,3 @@\n-a\n+b\n", note: "Use the helper" }]),
     ).toBe("Review tags:\n- file: src/a.ts\n  range: L12-L18\n  note: Use the helper\n  diff:\n    @@ -12,2 +12,3 @@\n    -a\n    +b");
+  });
+});
+
+describe("screen-reader announcements from store events", () => {
+  it("stays quiet for the snapshot and handled plants, speaks real transitions, and obeys the setting", async () => {
+    vi.useFakeTimers();
+    const said = vi.mocked(speak);
+    let emit: (e: GardenEvent) => void = () => {};
+    const waiting = plant("old", "b1", 1, { status: "waiting", ask: { id: "a0", kind: "permission", toolName: "Bash", title: "", detail: "", canAlwaysAllow: true, createdAt: 0 } });
+    const snap = { beds: [{ id: "b1", name: "t3code", path: "/r", createdAt: 0 }], plants: [waiting, plant("tulip", "b1", 2, { status: "working", name: "Tulip" }), plant("rose", "b1", 3, { status: "working" })], soil: {}, settings: {} } as unknown as Snapshot;
+    await connect({ onEvent: (l: (e: GardenEvent) => void) => ((emit = l), () => {}), snapshot: async () => snap } as unknown as GardenApi, true);
+    const spoken = () => said.mock.calls.map(([t]) => t).filter(Boolean);
+    const ask = { id: "a1", kind: "permission" as const, toolName: "Edit", title: "", detail: "", canAlwaysAllow: true, createdAt: 0 };
+
+    // A plant already waiting in the snapshot is not announced.
+    vi.advanceTimersByTime(10_000);
+    expect(spoken()).toEqual([]);
+
+    // Tulip starts waiting; Rose finishes but is read before the sentence is due, so only Tulip is said.
+    emit({ type: "batch", events: [{ type: "plant:patch", id: "tulip", patch: { status: "waiting", ask } }, { type: "plant:patch", id: "rose", patch: { status: "idle", unread: true } }] } as GardenEvent);
+    emit({ type: "plant:patch", id: "rose", patch: { unread: false } });
+    vi.advanceTimersByTime(1000);
+    expect(spoken()).toEqual(["Tulip in t3code needs your permission to edit files."]);
+
+    // Announcements off: a wilt says nothing.
+    setState((s) => ({ settings: { ...s.settings, announce: false } }));
+    emit({ type: "plant:patch", id: "rose", patch: { status: "error" } });
+    vi.advanceTimersByTime(10_000);
+    expect(spoken()).toHaveLength(1);
+    vi.useRealTimers();
   });
 });

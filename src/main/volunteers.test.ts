@@ -36,7 +36,7 @@ const vol = () => store.plants.get(`vol-${SID}`);
 const settled = () => new Promise((r) => setTimeout(r, 30));
 
 beforeEach(() => {
-  tmp = mkdtempSync(join(tmpdir(), "gardener-vol-"));
+  tmp = mkdtempSync(join(tmpdir(), "terrarium-vol-"));
   projects = join(tmp, "projects");
   mkdirSync(join(projects, "C--repo"), { recursive: true });
   file = join(projects, "C--repo", `${SID}.jsonl`);
@@ -93,7 +93,7 @@ describe("Volunteers from the transcript (layer 1)", () => {
     expect(vol()).toMatchObject({ ended: false, live: true, status: "thinking", turns: 2 });
   });
 
-  it("ignores old transcripts, SDK sessions and sessions Gardener sowed", async () => {
+  it("ignores old transcripts, SDK sessions and sessions Terrarium sowed", async () => {
     clock += 11 * 60_000;
     write(line.prompt("old"));
     await vols.tick();
@@ -192,7 +192,7 @@ describe("Volunteers from hook events (layer 2)", () => {
     expect(await vols.listen(port, "secret")).toBe(true);
     const post = (token: string, body: object) =>
       new Promise<{ status: number; body: string }>((resolve, reject) => {
-        const req = request({ host: "127.0.0.1", port, path: "/hook", method: "POST", headers: { "content-type": "application/json", "X-Gardener-Token": token } }, (res) => {
+        const req = request({ host: "127.0.0.1", port, path: "/hook", method: "POST", headers: { "content-type": "application/json", "X-Terrarium-Token": token } }, (res) => {
           let b = "";
           res.on("data", (c) => (b += c));
           res.on("end", () => resolve({ status: res.statusCode ?? 0, body: b }));
@@ -226,7 +226,7 @@ describe("hook install / uninstall in settings.json", () => {
     expect(st).toMatchObject({ installed: true, settingsPath: settings });
     expect(JSON.parse(read())).toEqual(hookFragment(47823, "tok"));
     expect(JSON.parse(st.preview)).toEqual(hookFragment(47823, "tok"));
-    expect(JSON.parse(st.preview).hooks.PreToolUse[0]).toEqual({ matcher: "*", hooks: [{ type: "http", url: "http://127.0.0.1:47823/hook", headers: { "X-Gardener-Token": "tok" }, timeout: 2 }] });
+    expect(JSON.parse(st.preview).hooks.PreToolUse[0]).toEqual({ matcher: "*", hooks: [{ type: "http", url: "http://127.0.0.1:47823/hook", headers: { "X-Terrarium-Token": "tok" }, timeout: 2 }] });
     expect(Object.keys(JSON.parse(st.preview).hooks)).toEqual(["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Notification", "Stop", "SessionEnd"]);
     expect((await vols.status()).installed).toBe(true);
     expect(await vols.installedHook()).toEqual({ port: 47823, token: "tok" });
@@ -244,13 +244,13 @@ describe("hook install / uninstall in settings.json", () => {
     expect(merged.hooks.PreToolUse).toHaveLength(2);
     expect(merged.hooks.PreToolUse[0].matcher).toBe("Bash");
     expect(read()).toContain('\r\n    "model"');
-    expect(readFileSync(`${settings}.gardener-backup`, "utf8")).toBe(original);
+    expect(readFileSync(`${settings}.terrarium-backup`, "utf8")).toBe(original);
 
-    // Reinstalling (new port) replaces Gardener's entries instead of adding more, and keeps the first backup.
+    // Reinstalling (new port) replaces Terrarium's entries instead of adding more, and keeps the first backup.
     await vols.install(47999, "tok2");
     expect(JSON.parse(read()).hooks.PreToolUse).toHaveLength(2);
     expect(JSON.parse(read()).hooks.Stop[0].hooks[0].url).toBe("http://127.0.0.1:47999/hook");
-    expect(readFileSync(`${settings}.gardener-backup`, "utf8")).toBe(original);
+    expect(readFileSync(`${settings}.terrarium-backup`, "utf8")).toBe(original);
 
     await vols.uninstall();
     expect(read()).toBe(original);
@@ -271,13 +271,24 @@ describe("hook install / uninstall in settings.json", () => {
     expect(read()).toBe('{\n\t"theme": "light"\n}\n');
   });
 
+  it("still recognises and cleanly removes a hook installed before the rename from Gardener", async () => {
+    const original = '{\n  "theme": "dark"\n}\n';
+    const legacy = JSON.parse(JSON.stringify(hookFragment(47823, "old")).replaceAll("X-Terrarium-Token", "X-Gardener-Token"));
+    writeFileSync(`${settings}.gardener-backup`, original);
+    writeFileSync(settings, JSON.stringify({ theme: "dark", ...legacy }, null, 2));
+    expect(await vols.installedHook()).toEqual({ port: 47823, token: "old" });
+    expect((await vols.status()).installed).toBe(true);
+    await vols.uninstall();
+    expect(read()).toBe(original);
+  });
+
   it("refuses invalid JSON and leaves it untouched", async () => {
     writeFileSync(settings, "{ not json");
     const st = await vols.install(47823, "tok");
     expect(st.installed).toBe(false);
     expect(st.note).toMatch(/not valid JSON/);
     expect(read()).toBe("{ not json");
-    expect(existsSync(`${settings}.gardener-backup`)).toBe(false);
+    expect(existsSync(`${settings}.terrarium-backup`)).toBe(false);
     expect((await vols.uninstall()).note).toMatch(/not valid JSON/);
     expect((await vols.status()).installed).toBe(false);
   });

@@ -23,7 +23,7 @@ describe("Almanac", () => {
   const repo = process.cwd();
 
   beforeEach(() => {
-    tmp = mkdtempSync(join(tmpdir(), "gardener-usage-"));
+    tmp = mkdtempSync(join(tmpdir(), "terrarium-usage-"));
     projects = join(tmp, "projects");
     store = new GardenStore(join(tmp, "data"));
     const folder = join(projects, "C--repo");
@@ -91,8 +91,8 @@ describe("Almanac", () => {
     expect((store.db.prepare("SELECT COUNT(*) AS n FROM usage").get() as { n: number }).n).toBe(7);
   });
 
-  // Opt-in, read-only measurement on this machine's real history: GARDENER_PERF=1 npm test -- src/main/usage.test.ts
-  it.skipIf(!process.env.GARDENER_PERF)(
+  // Opt-in, read-only measurement on this machine's real history: TERRARIUM_PERF=1 npm test -- src/main/usage.test.ts
+  it.skipIf(!process.env.TERRARIUM_PERF)(
     "scans the real ~/.claude/projects without blocking the event loop",
     async () => {
       const h = monitorEventLoopDelay({ resolution: 5 });

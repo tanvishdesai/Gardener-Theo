@@ -54,7 +54,7 @@ describe("StakeRunner", () => {
   let dir: string;
   let store: GardenStore;
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "gardener-stakes-"));
+    dir = mkdtempSync(join(tmpdir(), "terrarium-stakes-"));
     store = new GardenStore(join(dir, "data"));
     store.putBed({ id: "b1", name: "repo", path: dir, createdAt: 0 });
     store.putPlant(plant());

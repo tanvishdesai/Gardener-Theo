@@ -30,7 +30,7 @@ describe("GardenStore (SQLite)", () => {
   let dir: string;
   let store: GardenStore;
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "gardener-store-"));
+    dir = mkdtempSync(join(tmpdir(), "terrarium-store-"));
     store = new GardenStore(dir);
     store.putBed({ id: "b1", name: "repo", path: "/work/repo", createdAt: 0 });
     store.putPlant(plant());
@@ -145,17 +145,18 @@ describe("GardenStore (SQLite)", () => {
 
   it("persists settings over defaults", () => {
     expect(store.settings().idleMinutes).toBe(30);
-    store.setSettings({ maxLive: 6, onboarded: true });
+    store.setSettings({ maxLive: 6, onboarded: true, theme: "dark" });
     store.close();
     store = new GardenStore(dir);
-    expect(store.settings()).toMatchObject({ maxLive: 6, onboarded: true, idleMinutes: 30 });
+    // Keys never saved (e.g. added in a later version) fall back to their defaults.
+    expect(store.settings()).toMatchObject({ maxLive: 6, onboarded: true, theme: "dark", idleMinutes: 30, textSize: 100, motion: "system", announce: true });
   });
 });
 
 describe("V1 import", () => {
   let dir: string;
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "gardener-v1-"));
+    dir = mkdtempSync(join(tmpdir(), "terrarium-v1-"));
   });
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
 

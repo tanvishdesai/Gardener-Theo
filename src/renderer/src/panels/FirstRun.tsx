@@ -1,4 +1,4 @@
-// First run: check the tools Gardener needs, offer to import past sessions, offer the terminal hook.
+// First run: check the tools Terrarium needs, offer to import past sessions, offer the terminal hook.
 import { useEffect, useState } from "react";
 import type { FirstRunCheck } from "../../../shared/types";
 import { attempt, garden, setState } from "../store";
@@ -46,7 +46,7 @@ export function FirstRun({ onDone }: { onDone(): void }) {
     <Window title="Welcome to the garden" sub="Three quick checks, then you can start sowing" onClose={finish} className="v2-firstrun">
       <div className="v2-scroll">
         <p className="small">
-          Every repository is a <strong>bed</strong>; every Claude Code agent is a <strong>plant</strong> growing in it. Gardener runs Claude Code on this computer with the account it is logged into.
+          Every repository is a <strong>bed</strong>; every Claude Code agent is a <strong>plant</strong> growing in it. Terrarium runs Claude Code on this computer with the account it is logged into.
         </p>
 
         <section className="v2-card">
@@ -66,7 +66,7 @@ export function FirstRun({ onDone }: { onDone(): void }) {
                 ok={check.gh.ok}
                 name="GitHub CLI (optional)"
                 detail={check.gh.note}
-                fix="To open pull requests from Gardener, install GitHub CLI (cli.github.com) and run `gh auth login`. Without it, Gardener opens GitHub's compare page in your browser."
+                fix="To open pull requests from Terrarium, install GitHub CLI (cli.github.com) and run `gh auth login`. Without it, Terrarium opens GitHub's compare page in your browser."
                 optional
               />
             </ul>
@@ -111,7 +111,7 @@ export function FirstRun({ onDone }: { onDone(): void }) {
         <section className="v2-card">
           <h3>3 · Watch terminal sessions <span className="chip">recommended, optional</span></h3>
           <p className="small">
-            Sessions you start in a terminal appear in the garden as volunteers either way. The hook lets Gardener tell you when one is waiting for your permission.
+            Sessions you start in a terminal appear in the garden as volunteers either way. The hook lets Terrarium tell you when one is waiting for your permission.
           </p>
           <HookCard />
         </section>

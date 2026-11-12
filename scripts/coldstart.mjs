@@ -11,16 +11,16 @@ const require = createRequire(import.meta.url);
 const { _electron } = require("playwright-core");
 const electron = require("electron");
 const runs = Number(process.argv[process.argv.indexOf("--runs") + 1]) || 5;
-const userData = mkdtempSync(join(tmpdir(), "gardener-coldstart-"));
+const userData = mkdtempSync(join(tmpdir(), "terrarium-coldstart-"));
 
 async function launch() {
   const t0 = performance.now();
-  const app = await _electron.launch({ executablePath: electron, args: ["."], env: { ...process.env, GARDENER_USER_DATA: userData } });
+  const app = await _electron.launch({ executablePath: electron, args: ["."], env: { ...process.env, TERRARIUM_USER_DATA: userData } });
   const win = await app.firstWindow();
   // Interactive: the snapshot is loaded (no "Opening the garden gate" screen) and the garden canvas exists.
   await win.waitForFunction(() => !document.querySelector(".loading") && !!document.querySelector(".topbar") && !!document.querySelector("canvas"), null, { timeout: 30_000 });
   const ms = performance.now() - t0;
-  const plants = await win.evaluate(async () => (await window.gardener.snapshot()).plants.length);
+  const plants = await win.evaluate(async () => (await window.terrarium.snapshot()).plants.length);
   await app.close();
   return { ms, plants };
 }

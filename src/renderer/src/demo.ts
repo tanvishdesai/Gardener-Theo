@@ -27,6 +27,7 @@ import type {
   UsageReport,
   Weather,
 } from "../../shared/types";
+import { cachedAppearance } from "./a11y";
 import { syntheticGarden } from "./synthetic";
 
 let n = 0;
@@ -103,13 +104,13 @@ function makePlant(p: Partial<Plant> & Pick<Plant, "bedId" | "name" | "species" 
 
 const pot = (name: string, bedId: string, extra: Partial<Plant> = {}): Partial<Plant> => {
   const branch = potBranch(name, hex(4));
-  return { plot: "pot", branch, baseRef: "main", worktreePath: `~/.gardener/plots/${bedId}/${branch.slice(7)}`, potDirty: 0, ...extra };
+  return { plot: "pot", branch, baseRef: "main", worktreePath: `~/.terrarium/plots/${bedId}/${branch.slice(7)}`, potDirty: 0, ...extra };
 };
 
 function seedGarden() {
   const beds: Bed[] = [
     { id: "bed-t3", name: "t3code", path: "~/code/t3code", createdAt: now() - 9e6, gridX: 1, gridY: 0, stakeCommand: "npm run typecheck" },
-    { id: "bed-garden", name: "gardener", path: "~/code/gardener", createdAt: now() - 8e6, gridX: 1, gridY: 1 },
+    { id: "bed-garden", name: "terrarium", path: "~/code/terrarium", createdAt: now() - 8e6, gridX: 1, gridY: 1 },
     { id: "bed-site", name: "marketing-site", path: "~/code/marketing-site", createdAt: now() - 7e6, gridX: 0, gridY: 1 },
   ];
   const soilMap: Record<string, SoilReport> = {
@@ -199,7 +200,7 @@ function seedGarden() {
     makePlant({ bedId: "bed-garden", name: "Plan sync engine port", species: "daisy", seed: "Plan moving the custom sync engine to Convex", status: "waiting", permissionMode: "plan", live: true, turns: 1, ring: 1, toolCalls: 30, costUsd: 0.9 }),
     makePlant({ bedId: "bed-garden", name: "Rewrite bed layout", species: "poppy", seed: "Make beds wrap nicely on small windows", status: "thinking", activity: "think", live: true, turns: 4, ring: 4, toolCalls: 33, costUsd: 0.88, ...pot("Rewrite bed layout", "bed-garden") }),
     makePlant({ bedId: "bed-garden", name: "Fix soil polling", species: "sunflower", seed: "Soil polling runs git too often", status: "error", error: "Hit a usage limit. The plant will need to wait for the next window.", turns: 2, ring: 2, toolCalls: 12, costUsd: 0.3 }),
-    makePlant({ bedId: "bed-garden", name: "Terminal: README pass", species: "lavender", seed: "tighten the README", origin: "volunteer", watchedBy: "hook", ended: true, turns: 3, toolCalls: 19, costUsd: 0.44, cwd: "~/code/gardener", pinned: true }),
+    makePlant({ bedId: "bed-garden", name: "Terminal: README pass", species: "lavender", seed: "tighten the README", origin: "volunteer", watchedBy: "hook", ended: true, turns: 3, toolCalls: 19, costUsd: 0.44, cwd: "~/code/terrarium", pinned: true }),
     makePlant({ bedId: "bed-site", name: "Hero section copy", species: "tulip", seed: "Draft new hero copy", turns: 0 }),
     makePlant({ bedId: "bed-site", name: "Survey the bed", species: "daisy", seed: "Give me a tour", status: "working", activity: "read", activityDetail: "src/pages/index.astro", live: true, toolCalls: 4, costUsd: 0.04, permissionMode: "plan" }),
   ];
@@ -254,7 +255,19 @@ export function createDemo(): GardenApi {
       : qWeather === "rain"
         ? { status: "rain", utilization: 1, resetsAt: now() + 2 * 3600_000, limitType: "five_hour", at: now() }
         : { status: "clouds", utilization: 0.82, resetsAt: now() + 2 * 3600_000, limitType: "five_hour", at: now() };
-  let settings: Settings = { idleMinutes: 30, hookInstalled: false, hookPort: 47821, onboarded: !q.has("firstrun"), wakeOnRedStake: true };
+  let settings: Settings = {
+    idleMinutes: 30,
+    hookInstalled: false,
+    hookPort: 47821,
+    onboarded: !q.has("firstrun"),
+    wakeOnRedStake: true,
+    textSize: 100,
+    theme: "system",
+    motion: "system",
+    announce: true,
+    // The demo keeps nothing between visits except what the browser remembers of the appearance settings.
+    ...cachedAppearance(),
+  };
 
   // ---------- events, coalesced per 16 ms ----------
   let pending: GardenEvent[] = [];
@@ -916,7 +929,7 @@ export function createDemo(): GardenApi {
     async commitMessage(plantId): Promise<CommitMessage> {
       const p = plants.get(plantId);
       await wait(400);
-      return { subject: p?.name ?? "Update", body: p?.lastText ? clip(p.lastText, 400)! : "Changes grown by a Gardener plant." };
+      return { subject: p?.name ?? "Update", body: p?.lastText ? clip(p.lastText, 400)! : "Changes grown by a Terrarium plant." };
     },
     async commit(plantId, message) {
       const p = plants.get(plantId);
@@ -995,7 +1008,7 @@ export function createDemo(): GardenApi {
     },
     async diagnostics() {
       return [
-        "Gardener demo diagnostics",
+        "Terrarium demo diagnostics",
         `beds: ${beds.size}`,
         `plants: ${plants.size} (${pool().live} live)`,
         `journals in memory: ${journals.size}, open: ${[...openJournals].join(", ") || "none"}`,

@@ -5,7 +5,7 @@
 // a ring per turn with before/after git checkpoints, prune back and fork (M4).
 //
 // Auth is whatever Claude Code itself uses on this machine: run `claude` once and log in with
-// your Claude subscription, and every plant here uses that login. Nothing is stored by Gardener.
+// your Claude subscription, and every plant here uses that login. Nothing is stored by Terrarium.
 import { spawn } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
@@ -107,7 +107,7 @@ interface Growing {
   done: Promise<void>;
 }
 
-const GARDEN_APPEND = `You are running inside Gardener, a desktop app where the user tends several coding agents at once, drawn as plants in a garden. The user is not watching your output continuously: when you finish a turn, end with a short, plain summary of what changed and anything they must decide, so they can review it at a glance.`;
+const GARDEN_APPEND = `You are running inside Terrarium, a desktop app where the user tends several coding agents at once, drawn as plants in a garden. The user is not watching your output continuously: when you finish a turn, end with a short, plain summary of what changed and anything they must decide, so they can review it at a glance.`;
 
 const potNote = (pot: string, branch: string | undefined, bedRoot: string) =>
   `\n\nYou are working in your own git worktree at ${pot}${branch ? ` on branch ${branch}` : ""}. Only read and change files under that folder. The user's main checkout at ${bedRoot} belongs to them and to other agents: never edit it or run commands there. Earlier messages may mention other paths; ignore them for edits.`;
@@ -147,7 +147,7 @@ const userTurn = (text: string): SDKUserMessage => ({
 /** "Show anyway" cap for one file's diff (the default is 1 MB). */
 export const FULL_DIFF_BYTES = 50 * 1024 * 1024;
 
-const refBase = (plantId: string) => `refs/gardener/${plantId}/`;
+const refBase = (plantId: string) => `refs/terrarium/${plantId}/`;
 
 export class Greenhouse {
   private growing = new Map<string, Growing>();
@@ -292,11 +292,13 @@ export class Greenhouse {
     this.store.updatePlant(plantId, { potPending: undefined });
   }
 
-  /** Optional per-repo `gardener.json`: { "pot": { "copy": [".env"], "setup": "npm ci", "async": false } }. */
+  /** Optional per-repo `terrarium.json`: { "pot": { "copy": [".env"], "setup": "npm ci", "async": false } }. */
   private async potSetup(plantId: string, bedRoot: string, pot: string) {
     let cfg: { pot?: { copy?: string[]; setup?: string; async?: boolean } } = {};
     try {
-      cfg = JSON.parse(await readFile(join(bedRoot, "gardener.json"), "utf8"));
+      const file = ["terrarium.json", "gardener.json"].map((f) => join(bedRoot, f)).find((f) => existsSync(f)); // gardener.json: before the rename
+      if (!file) return;
+      cfg = JSON.parse(await readFile(file, "utf8"));
     } catch {
       return;
     }
@@ -343,7 +345,7 @@ export class Greenhouse {
     const plant = this.store.plants.get(plantId);
     if (!plant) throw new Error("That plant is gone");
     if (plant.origin === "volunteer") throw new Error("This session is running in a terminal. Reply there, or adopt it here once it has ended.");
-    if (plant.watchedBy && plant.live && !this.growing.has(plantId)) throw new Error("This session is running in a terminal right now. Reply there; Gardener can continue it once it ends.");
+    if (plant.watchedBy && plant.live && !this.growing.has(plantId)) throw new Error("This session is running in a terminal right now. Reply there; Terrarium can continue it once it ends.");
     const body = text.trim();
     if (!body) return;
     this.entry(plantId, { kind: "user", text: body });
@@ -417,7 +419,7 @@ export class Greenhouse {
       systemPrompt: { type: "preset", preset: "claude_code", append: GARDEN_APPEND + (pot ? potNote(pot, plant.branch, bed.path) : "") },
       env: this.hooks.env(),
       stderr: (data) => {
-        if (process.env.GARDENER_DEBUG) console.error(`[claude ${plant.name}]`, data);
+        if (process.env.TERRARIUM_DEBUG) console.error(`[claude ${plant.name}]`, data);
       },
       ...(pot
         ? {
@@ -454,7 +456,7 @@ export class Greenhouse {
     const child = spawn(o.command, o.args, { cwd: o.cwd, env: o.env, signal: o.signal, stdio: ["pipe", "pipe", "pipe"], windowsHide: true });
     this.hooks.pool?.register(plantId, child.pid);
     child.stderr?.on("data", (d: Buffer) => {
-      if (process.env.GARDENER_DEBUG) console.error(`[claude ${name}]`, d.toString("utf8"));
+      if (process.env.TERRARIUM_DEBUG) console.error(`[claude ${name}]`, d.toString("utf8"));
     });
     child.on("exit", () => this.hooks.pool?.unregister(plantId));
     return child as unknown as SpawnedProcess;
@@ -644,7 +646,7 @@ export class Greenhouse {
     const cwd = this.cwdOf(plant);
     if (!cwd || !existsSync(cwd)) return { skipped: "the folder is missing" } as const;
     try {
-      return await this.withCwd(cwd, () => git.snapshot(cwd, which === "now" ? `${refBase(plant.id)}now` : `${refBase(plant.id)}${n}/${which}`, `gardener: ${plant.name} ring ${n} ${which}`));
+      return await this.withCwd(cwd, () => git.snapshot(cwd, which === "now" ? `${refBase(plant.id)}now` : `${refBase(plant.id)}${n}/${which}`, `terrarium: ${plant.name} ring ${n} ${which}`));
     } catch (err) {
       return { skipped: err instanceof Error ? err.message : String(err) } as const;
     }
@@ -920,7 +922,7 @@ export class Greenhouse {
     try {
       await g.query.setPermissionMode(mode);
     } catch (err) {
-      console.error("[gardener] setPermissionMode failed", err);
+      console.error("[terrarium] setPermissionMode failed", err);
     }
   }
 
@@ -976,8 +978,9 @@ export class Greenhouse {
       try {
         if (plant.plot === "pot" && plant.worktreePath) await git.removeWorktree(bed.path, plant.worktreePath, { deleteBranch: opts.deleteBranch ? plant.branch : undefined });
         await git.deleteRefs(bed.path, refBase(plantId));
+        await git.deleteRefs(bed.path, `refs/gardener/${plantId}/`); // checkpoints made before the rename
       } catch (err) {
-        console.error("[gardener] uproot cleanup failed", err);
+        console.error("[terrarium] uproot cleanup failed", err);
       }
     }
     this.store.deletePlant(plantId);

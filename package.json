@@ -1,6 +1,6 @@
 {
-  "name": "gardener",
-  "productName": "Gardener",
+  "name": "terrarium",
+  "productName": "Terrarium",
   "version": "0.1.0",
   "description": "A garden for your Claude Code agents. Repos are beds, agents are plants, you are the gardener.",
   "private": true,
@@ -11,6 +11,7 @@
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "demo": "vite --config vite.web.config.ts",
+    "build:web": "vite build --config vite.web.config.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "node scripts/test.mjs",
     "dist": "npm run build && electron-builder --win -c electron-builder.yml",
@@ -46,6 +47,6 @@
   "engines": {
     "node": ">=22.12"
   },
-  "author": "Gardener contributors",
-  "repository": "github:tanvishdesai/Gardener-Theo"
+  "author": "Terrarium contributors",
+  "repository": "github:tanvishdesai/Terrarium-TD"
 }

@@ -152,7 +152,7 @@ function Badges({ plant }: { plant: Plant }) {
       {plant.origin === "volunteer" && !plant.ended && (
         <span
           className="chip chip--volunteer"
-          title={plant.watchedBy === "transcript" ? "Watched through its transcript: Gardener can't tell when it is waiting on you. Install the hook in Settings for that." : "Watched through the Claude Code hook"}
+          title={plant.watchedBy === "transcript" ? "Watched through its transcript: Terrarium can't tell when it is waiting on you. Install the hook in Settings for that." : "Watched through the Claude Code hook"}
         >
           Volunteer · running in a terminal
         </span>

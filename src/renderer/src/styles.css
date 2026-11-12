@@ -33,6 +33,12 @@
   --focus: #5fb4ec;
   /* Text size setting (1, 1.25, 1.5), set on <html> by a11y.ts. Scales font sizes only, never the canvas. */
   --text: 1;
+  /* Text colours. --ink is the frame colour and stays near-black in dark mode, so text uses these. */
+  --fg: #2b2233;
+  --fg-green: var(--accent-dark);
+  --fg-blue: #2d6fa3;
+  --fg-red: var(--wilt);
+  --fg-amber: #a26a00;
 
   color-scheme: light;
 }
@@ -51,8 +57,12 @@
     --wilt-bg: #5a2a24;
     --gold-bg: #4f4518;
     --title: #2e6a3a;
+    --fg: #f6edd6;
+    --fg-green: var(--accent-light);
+    --fg-blue: var(--sky);
+    --fg-red: #f09a85;
+    --fg-amber: var(--amber);
     color-scheme: dark;
-    color: #f6edd6;
   }
 }
 
@@ -69,6 +79,11 @@
   --wilt-bg: #5a2a24;
   --gold-bg: #4f4518;
   --title: #2e6a3a;
+  --fg: #f6edd6;
+  --fg-green: var(--accent-light);
+  --fg-blue: var(--sky);
+  --fg-red: #f09a85;
+  --fg-amber: var(--amber);
   color-scheme: dark;
 }
 
@@ -87,17 +102,11 @@ body {
   font-family: var(--font);
   font-size: calc(15px * var(--text));
   line-height: 1.35;
-  color: var(--ink);
+  color: var(--fg);
   background: #1c1724;
   overflow: hidden;
   -webkit-font-smoothing: none;
   font-smooth: never;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) body {
-    color: #f6edd6;
-  }
 }
 
 button,
@@ -231,7 +240,7 @@ textarea {
   gap: 6px;
   padding: 3px 10px;
   background: var(--paper);
-  color: var(--ink);
+  color: var(--fg);
   cursor: pointer;
   white-space: nowrap;
   font-size: calc(14px * var(--text));
@@ -249,17 +258,17 @@ textarea {
 
 .tally__item--need.is-on {
   background: var(--amber);
-  color: var(--ink);
+  color: var(--fg);
 }
 
 .tally__item--harvest.is-on {
   background: var(--gold-bg);
-  color: var(--ink);
+  color: var(--fg);
 }
 
 .tally__item--grow.is-on {
   background: var(--accent-light);
-  color: var(--ink);
+  color: var(--fg);
 }
 
 .topbar__actions {
@@ -278,7 +287,7 @@ textarea {
   margin: 2px;
   padding: 5px 12px;
   background: var(--paper);
-  color: var(--ink);
+  color: var(--fg);
   cursor: pointer;
   font-size: calc(14px * var(--text));
   white-space: nowrap;
@@ -322,7 +331,7 @@ textarea {
 }
 
 .btn--danger-text {
-  color: var(--wilt);
+  color: var(--fg-red);
   align-self: flex-start;
 }
 
@@ -334,7 +343,7 @@ a.btn {
 /* The demo's way out to the repo: warm gold on the wood, same pixel frame as every button. */
 .btn--github {
   background: var(--gold-bg);
-  color: var(--ink);
+  color: var(--fg);
   font-family: var(--font-caps);
   font-size: calc(12px * var(--text));
 }
@@ -395,13 +404,13 @@ a.btn {
   padding: 0 7px;
   font-size: calc(13px * var(--text));
   background: var(--paper);
-  color: var(--ink);
+  color: var(--fg);
   white-space: nowrap;
 }
 
 .chip--demo {
   background: var(--gold-bg);
-  color: var(--ink);
+  color: var(--fg);
   font-family: var(--font-caps);
   font-size: calc(11px * var(--text));
   text-shadow: none;
@@ -419,7 +428,7 @@ a.btn {
 }
 
 .mood--growing {
-  color: #2d6fa3;
+  color: var(--fg-blue);
 }
 .mood--tending {
   background: var(--amber);
@@ -428,7 +437,7 @@ a.btn {
   background: var(--gold-bg);
 }
 .mood--sown {
-  color: var(--accent-dark);
+  color: var(--fg-green);
 }
 .mood--fallow {
   color: var(--muted);
@@ -549,7 +558,7 @@ a.btn {
 
 .nametag--bed.is-active {
   background: var(--gold);
-  color: var(--ink);
+  color: var(--fg);
   text-shadow: none;
 }
 
@@ -563,7 +572,7 @@ a.btn {
 
 .nametag--waiting {
   background: var(--amber);
-  color: var(--ink);
+  color: var(--fg);
 }
 .nametag--waiting .nametag__meta {
   color: var(--ink-2);
@@ -574,7 +583,7 @@ a.btn {
 
 .nametag--new {
   background: rgba(255, 255, 255, 0.85);
-  color: var(--ink);
+  color: var(--fg);
 }
 
 .iso__tip {
@@ -606,7 +615,7 @@ a.btn {
   margin: 0;
   padding: 0 0 16px;
   background: var(--paper);
-  color: var(--ink);
+  color: var(--fg);
   z-index: 4;
 }
 
@@ -642,7 +651,7 @@ a.btn {
   flex-direction: column;
   min-height: 0;
   background: var(--paper);
-  color: var(--ink);
+  color: var(--fg);
   border-left: 4px solid var(--ink);
 }
 
@@ -788,7 +797,7 @@ a.btn {
   padding: 1px 6px;
   font-size: calc(13px * var(--text));
   background: var(--paper);
-  color: var(--ink);
+  color: var(--fg);
 }
 
 /* asks */
@@ -864,7 +873,7 @@ a.btn {
   margin: 2px;
   padding: 5px 8px;
   background: var(--paper);
-  color: var(--ink);
+  color: var(--fg);
   box-shadow:
     -2px 0 0 0 var(--ink),
     2px 0 0 0 var(--ink),
@@ -1051,7 +1060,7 @@ a.btn {
   padding: 1px 10px;
   font-size: calc(13px * var(--text));
   background: var(--gold-bg);
-  color: #2b2233;
+  color: var(--fg);
 }
 
 .j--error {
@@ -1088,7 +1097,7 @@ a.btn {
 }
 
 .md li::marker {
-  color: var(--accent);
+  color: var(--fg-green);
 }
 
 .md code {
@@ -1183,7 +1192,7 @@ a.btn {
 
 .check--ok .check__icon::after {
   content: "✓";
-  color: var(--ink);
+  color: var(--fg);
 }
 
 .check--missing .check__icon::after {
@@ -1277,14 +1286,14 @@ a.btn {
 }
 
 .status-text--waiting {
-  color: #a26a00;
+  color: var(--fg-amber);
 }
 .status-text--error {
-  color: var(--wilt);
+  color: var(--fg-red);
 }
 .status-text--working,
 .status-text--thinking {
-  color: var(--accent);
+  color: var(--fg-green);
 }
 
 .label__dot {
@@ -1314,7 +1323,7 @@ a.btn {
   overflow: auto;
   padding: 0 18px 16px;
   background: var(--paper);
-  color: var(--ink);
+  color: var(--fg);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1544,7 +1553,7 @@ html.motion-reduce *::after {
   margin: 2px;
   padding: 2px 8px;
   background: var(--paper-2);
-  color: var(--ink);
+  color: var(--fg);
   font-family: var(--font-caps);
   font-size: calc(11px * var(--text));
   cursor: pointer;
@@ -1565,7 +1574,7 @@ html.motion-reduce *::after {
 .plot__kind {
   font-family: var(--font-caps);
   font-size: calc(11px * var(--text));
-  color: var(--ink);
+  color: var(--fg);
 }
 
 .status--queued {
@@ -1617,11 +1626,11 @@ a.chip:hover {
 }
 
 .add {
-  color: var(--accent);
+  color: var(--fg-green);
 }
 
 .del {
-  color: var(--wilt);
+  color: var(--fg-red);
 }
 
 .tabs {
@@ -1636,7 +1645,7 @@ a.chip:hover {
   margin: 2px;
   padding: 2px 12px;
   background: var(--paper-3);
-  color: var(--ink);
+  color: var(--fg);
   font-family: var(--font-caps);
   font-size: calc(11px * var(--text));
   cursor: pointer;
@@ -1750,7 +1759,7 @@ a.chip:hover {
   margin: 2px;
   padding: 2px 6px;
   background: var(--paper);
-  color: var(--ink);
+  color: var(--fg);
   min-width: 0;
 }
 
@@ -1787,7 +1796,7 @@ a.chip:hover {
   flex-direction: column;
   min-height: 0;
   background: var(--paper);
-  color: var(--ink);
+  color: var(--fg);
   border-right: 4px solid var(--ink);
 }
 
@@ -1827,7 +1836,7 @@ a.chip:hover {
   margin: 2px;
   padding: 3px 8px;
   background: var(--paper);
-  color: var(--ink);
+  color: var(--fg);
 }
 
 .catalogue__filters {
@@ -1993,7 +2002,7 @@ a.chip:hover {
   display: flex;
   flex-direction: column;
   background: var(--paper);
-  color: var(--ink);
+  color: var(--fg);
 }
 
 .palette__input {
@@ -2001,7 +2010,7 @@ a.chip:hover {
   padding: 6px 10px;
   font-size: calc(16px * var(--text));
   background: var(--paper);
-  color: var(--ink);
+  color: var(--fg);
 }
 
 .palette__list {
@@ -2029,7 +2038,7 @@ a.chip:hover {
 
 .palette__item.is-active {
   background: var(--accent-light);
-  color: var(--ink);
+  color: var(--fg);
 }
 
 .palette__title {
@@ -2217,6 +2226,36 @@ a.chip:hover {
   :root {
     --muted: var(--ink-2);
   }
+}
+
+/* Surfaces whose background stays light in both themes (amber, gold, light green, sky). Their text, and
+   any --ink-2 / --muted text inside them, keeps light-theme colours so it doesn't go light-on-light. */
+.tally__item--need.is-on,
+.tally__item--grow.is-on,
+.mood--tending,
+.nametag--bed.is-active,
+.nametag--waiting,
+.nametag--new,
+.option--on,
+.check--ok .check__icon,
+.chore:hover,
+.mode--on:not(.mode--wild),
+.species__opt--on,
+.topbar__toggle.is-on,
+.chip--weather.chip--clouds,
+.chip--weather.chip--rain,
+.chip--passing,
+.chip--filter.is-on,
+.palette__item.is-active,
+.v2-chip--ok,
+.v2-seg .btn.is-on,
+.v2-step.is-on,
+.v2-prstate--open,
+.v2-prstate--merged {
+  --fg: var(--ink);
+  --ink-2: #4e4258;
+  --muted: #4e4258;
+  color: var(--fg);
 }
 
 /* Windows high contrast (forced colors) drops box-shadow, which draws every pixel frame here. An outline

@@ -5,7 +5,6 @@
   --v2-frame:
     -2px 0 0 0 var(--ink), 2px 0 0 0 var(--ink), 0 -2px 0 0 var(--ink), 0 2px 0 0 var(--ink), inset 2px 2px 0 0 var(--hi), inset -2px -2px 0 0 var(--lo);
   --v2-flat: -2px 0 0 0 var(--ink), 2px 0 0 0 var(--ink), 0 -2px 0 0 var(--ink), 0 2px 0 0 var(--ink);
-  --v2-text: var(--ink);
   --v2-code: ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace;
   --v2-code-bg: #fffaf0;
   --v2-add-bg: #dff3cf;
@@ -18,7 +17,6 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --v2-text: #f6edd6;
     --v2-code-bg: #241d2c;
     --v2-add-bg: #263d27;
     --v2-add-ink: #8fd77f;
@@ -30,7 +28,6 @@
 }
 
 :root[data-theme="dark"] {
-  --v2-text: #f6edd6;
   --v2-code-bg: #241d2c;
   --v2-add-bg: #263d27;
   --v2-add-ink: #8fd77f;
@@ -53,7 +50,7 @@
   flex-direction: column;
   min-height: 0;
   background: var(--paper);
-  color: var(--v2-text);
+  color: var(--fg);
   box-shadow: var(--v2-frame);
   outline: none;
 }
@@ -168,27 +165,9 @@
   margin: 2px;
   padding: 7px 10px;
   background: var(--gold-bg);
-  color: var(--v2-text);
+  color: var(--fg);
   box-shadow: var(--v2-flat);
   position: relative;
-}
-
-/* styles.css buttons keep ink text, which is unreadable on dark paper; panels here follow the theme. */
-.v2-win .btn:not(.btn--primary),
-.v2-rings .btn:not(.btn--primary),
-.v2-harvest .btn:not(.btn--primary),
-.v2-win .chip,
-.v2-rings .chip,
-.v2-harvest .chip {
-  color: var(--v2-text);
-}
-
-.v2-seg .btn.is-on,
-.v2-chip--ok,
-.v2-stake--failing,
-.chip.v2-prstate--open,
-.chip.v2-prstate--merged {
-  color: var(--ink) !important;
 }
 
 .v2-notice p {
@@ -197,7 +176,7 @@
 
 .v2-empty {
   background: var(--paper-2);
-  color: var(--v2-text);
+  color: var(--fg);
 }
 
 .v2-notice__x {
@@ -234,7 +213,7 @@
   white-space: pre-wrap;
   word-break: break-word;
   background: var(--v2-code-bg);
-  color: var(--v2-text);
+  color: var(--fg);
   -webkit-font-smoothing: auto;
 }
 
@@ -273,7 +252,7 @@
   font-family: var(--font-caps);
   font-size: calc(10px * var(--text));
   color: #fff8e4;
-  background: var(--muted);
+  background: #7f7064;
 }
 
 .v2-letter--added {
@@ -289,7 +268,7 @@
   background: #2d6fa3;
 }
 
-.v2-chip--ok {
+.chip.v2-chip--ok {
   background: var(--accent-light);
 }
 
@@ -395,7 +374,7 @@
 
 .v2-rings,
 .v2-harvest {
-  color: var(--v2-text);
+  color: var(--fg);
 }
 
 .v2-rings {
@@ -571,7 +550,7 @@
   background: none;
   text-align: left;
   cursor: pointer;
-  color: var(--v2-text);
+  color: var(--fg);
 }
 
 .v2-file:hover {
@@ -647,7 +626,7 @@
 
 .v2-taglist__x {
   flex: none;
-  color: var(--wilt);
+  color: var(--fg-red);
   font-size: calc(15px * var(--text));
 }
 
@@ -698,7 +677,7 @@
   min-height: 0;
   overflow: auto;
   background: var(--v2-code-bg);
-  color: var(--v2-text);
+  color: var(--fg);
   font-family: var(--v2-code);
   font-size: calc(12.5px * var(--text));
   line-height: 1.5;
@@ -798,7 +777,7 @@
   padding: 4px 8px;
   border: none;
   background: var(--paper-2);
-  color: var(--v2-text);
+  color: var(--fg);
   box-shadow: var(--v2-flat);
   margin: 2px;
 }
@@ -832,7 +811,7 @@
   padding: 4px 6px;
   border: none;
   background: var(--paper-2);
-  color: var(--v2-text);
+  color: var(--fg);
   box-shadow: var(--v2-frame);
   text-align: left;
   cursor: pointer;
@@ -951,14 +930,14 @@
 
 .v2-subbox a,
 .v2-harvest a {
-  color: #2d6fa3;
+  color: var(--fg-blue);
   word-break: break-all;
 }
 
-.v2-prstate--open {
+.chip.v2-prstate--open {
   background: var(--accent-light);
 }
-.v2-prstate--merged {
+.chip.v2-prstate--merged {
   background: #c9b6ec;
 }
 .v2-prstate--closed {
@@ -1174,7 +1153,7 @@
   border: none;
   margin: 2px;
   background: var(--v2-code-bg);
-  color: var(--v2-text);
+  color: var(--fg);
   box-shadow: var(--v2-flat);
   font-family: var(--v2-code);
   font-size: calc(12.5px * var(--text));
@@ -1216,7 +1195,7 @@
   background: var(--wilt);
 }
 .v2-checkrow.is-opt .v2-checkrow__mark {
-  background: var(--muted);
+  background: #7f7064;
 }
 
 /* Indeterminate progress: a block that steps along (held still under reduced motion by styles.css). */

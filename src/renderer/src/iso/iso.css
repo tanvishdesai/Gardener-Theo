@@ -3,7 +3,7 @@
   transform: translate(-50%, 0);
   padding: 1px 6px 2px;
   background: var(--paper, #f6f0dc);
-  color: var(--ink, #2b2233);
+  color: var(--fg, #2b2233);
   font-size: calc(12px * var(--text));
 }
 

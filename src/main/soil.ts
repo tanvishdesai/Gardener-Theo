@@ -1,16 +1,9 @@
 // Reads a bed's soil: git state plus the hygiene that helps agents grow well.
-import { execFile } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+// Fully async (PLAN 2f): no sync fs, and the test-file search is a bounded walk.
+import { promises as fs, type Dirent } from "node:fs";
 import { join } from "node:path";
 import type { SoilReport } from "../shared/types";
-
-function git(cwd: string, args: string[]): Promise<string | null> {
-  return new Promise((resolve) => {
-    execFile("git", args, { cwd, timeout: 5000, maxBuffer: 4 * 1024 * 1024 }, (err, stdout) => {
-      resolve(err ? null : stdout);
-    });
-  });
-}
+import { defaultBranch, git } from "./git";
 
 /** Parses `git status --porcelain=v1 -b` output. Exported for tests. */
 export function parseStatus(out: string): Pick<SoilReport, "branch" | "dirty" | "ahead" | "behind"> {
@@ -32,7 +25,7 @@ export function parseStatus(out: string): Pick<SoilReport, "branch" | "dirty" | 
 const GUIDANCE = ["CLAUDE.md", "AGENTS.md", ".claude/CLAUDE.md", "CLAUDE.local.md", ".cursorrules", ".github/copilot-instructions.md"];
 const CI = [".github/workflows", ".gitlab-ci.yml", ".circleci", "azure-pipelines.yml", ".buildkite", "Jenkinsfile", ".woodpecker.yml"];
 const TEST_DIRS = ["test", "tests", "__tests__", "spec", "e2e", "src/test", "src/__tests__"];
-const TEST_CONFIGS = ["vitest.config.ts", "vitest.config.js", "jest.config.js", "jest.config.ts", "playwright.config.ts", "pytest.ini", "Cargo.toml", "go.mod"];
+const TEST_CONFIGS = ["vitest.config.ts", "vitest.config.js", "jest.config.js", "jest.config.ts", "playwright.config.ts", "pytest.ini"];
 const LINT = [
   "eslint.config.js",
   "eslint.config.mjs",
@@ -51,77 +44,135 @@ const LINT = [
   ".golangci.yml",
   ".editorconfig",
 ];
+/** Files the stake detection reads. Together with the lists above, these are the "hygiene files" the scheduler watches. */
+const BUILD_FILES = ["package.json", "Makefile", "pyproject.toml", "Cargo.toml", "go.mod", "pnpm-lock.yaml", "yarn.lock", "bun.lockb", "bun.lock"];
+export const HYGIENE_FILES = new Set([...GUIDANCE, ...CI, ...TEST_DIRS, ...TEST_CONFIGS, ...LINT, ...BUILD_FILES].map((f) => f.split("/")[0]));
 
-function present(root: string, candidates: string[]) {
-  return candidates.filter((c) => existsSync(join(root, c)));
+const exists = (p: string) =>
+  fs.access(p).then(
+    () => true,
+    () => false,
+  );
+const readText = (p: string) => fs.readFile(p, "utf8").catch(() => null);
+
+async function present(root: string, candidates: string[]): Promise<string[]> {
+  const hits = await Promise.all(candidates.map((c) => exists(join(root, c))));
+  return candidates.filter((_, i) => hits[i]);
 }
 
-function packageJson(root: string): Record<string, unknown> | null {
-  try {
-    return JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
-  } catch {
-    return null;
-  }
-}
+type Pkg = { scripts?: Record<string, string>; prettier?: unknown } | null;
 
-function findTests(root: string): string[] {
-  const found = present(root, TEST_DIRS);
-  const pkg = packageJson(root);
-  const scripts = (pkg?.scripts ?? {}) as Record<string, string>;
-  if (scripts.test && !/no test specified/.test(scripts.test)) found.push("npm test");
-  for (const c of present(root, TEST_CONFIGS)) {
-    // Cargo and Go have built-in test runners; only count them if a test file exists nearby.
-    if (c === "Cargo.toml" || c === "go.mod") continue;
-    found.push(c);
-  }
-  if (found.length === 0) {
-    // A quick shallow look for *.test.* / *_test.* files in src.
-    const src = join(root, "src");
+/** Breadth-first walk of src/ (depth ≤ 4, ≤ 2000 entries); returns the first test file found. */
+async function findTestFile(root: string): Promise<string | undefined> {
+  const queue: [string, number][] = [["src", 0]];
+  let seen = 0;
+  while (queue.length) {
+    const [rel, depth] = queue.shift()!;
+    let names: Dirent[];
     try {
-      if (statSync(src).isDirectory()) {
-        const hit = readdirSync(src, { recursive: true, encoding: "utf8" })
-          .slice(0, 5000)
-          .find((f) => /(\.test\.|\.spec\.|_test\.)/.test(f));
-        if (hit) found.push(`src/${hit}`);
-      }
+      names = await fs.readdir(join(root, rel), { withFileTypes: true });
     } catch {
-      // ignore
+      continue;
+    }
+    for (const d of names) {
+      if (++seen > 2000) return undefined;
+      const child = `${rel}/${d.name}`;
+      if (d.isFile() && /(\.test\.|\.spec\.|_test\.)/.test(d.name)) return child;
+      if (d.isDirectory() && depth < 4 && d.name !== "node_modules" && !d.name.startsWith(".")) queue.push([child, depth + 1]);
     }
   }
+  return undefined;
+}
+
+const realTest = (s?: string) => !!s && !/no test specified/.test(s);
+
+async function findTests(root: string, pkg: Pkg): Promise<string[]> {
+  const found = await present(root, TEST_DIRS);
+  if (realTest(pkg?.scripts?.test)) found.push("npm test");
+  found.push(...(await present(root, TEST_CONFIGS)));
+  if (found.length === 0) {
+    const hit = await findTestFile(root);
+    if (hit) found.push(hit);
+  }
   return found;
 }
 
-function findLint(root: string): string[] {
-  const found = present(root, LINT);
-  const pkg = packageJson(root);
-  const scripts = (pkg?.scripts ?? {}) as Record<string, string>;
-  if (scripts.lint) found.push("npm run lint");
-  if (pkg && (pkg as { prettier?: unknown }).prettier) found.push("package.json prettier");
+async function findLint(root: string, pkg: Pkg): Promise<string[]> {
+  const found = await present(root, LINT);
+  if (pkg?.scripts?.lint) found.push("npm run lint");
+  if (pkg?.prettier) found.push("package.json prettier");
   return found;
 }
 
-export async function readSoil(root: string): Promise<SoilReport> {
-  const base: SoilReport = {
-    exists: existsSync(root),
-    isGitRepo: false,
-    dirty: 0,
-    ahead: 0,
-    behind: 0,
-    guidance: [],
-    ci: [],
-    tests: [],
-    lint: [],
-    checkedAt: Date.now(),
-  };
-  if (!base.exists) return base;
-  const status = await git(root, ["status", "--porcelain=v1", "-b", "--untracked-files=normal"]);
-  return {
-    ...base,
-    isGitRepo: status !== null,
-    ...(status !== null ? parseStatus(status) : {}),
-    guidance: present(root, GUIDANCE),
-    ci: present(root, CI),
-    tests: findTests(root),
-    lint: findLint(root),
-  };
+/** Check commands a bed could use as its stake, most useful first. Exported for tests. */
+export async function findStakeCandidates(root: string, pkg: Pkg = null): Promise<string[]> {
+  const out: string[] = [];
+  const scripts = pkg?.scripts ?? {};
+  const [pnpm, yarn, bunb, bun] = await Promise.all(["pnpm-lock.yaml", "yarn.lock", "bun.lockb", "bun.lock"].map((f) => exists(join(root, f))));
+  const pm = pnpm ? "pnpm" : yarn ? "yarn" : bunb || bun ? "bun" : "npm";
+  for (const s of ["typecheck", "check", "lint", "test"]) {
+    if (!scripts[s] || (s === "test" && !realTest(scripts.test))) continue;
+    // `npm test` is a built-in alias; `bun test` would run bun's own runner, so bun always says `run`.
+    out.push(pm === "npm" ? (s === "test" ? "npm test" : `npm run ${s}`) : pm === "bun" ? `bun run ${s}` : `${pm} ${s}`);
+  }
+  const [make, py, cargo, gomod] = await Promise.all([readText(join(root, "Makefile")), readText(join(root, "pyproject.toml")), exists(join(root, "Cargo.toml")), exists(join(root, "go.mod"))]);
+  if (make) for (const t of ["check", "test", "lint"]) if (new RegExp(`^${t}\\s*:`, "m").test(make)) out.push(`make ${t}`);
+  if (py) {
+    if (/pytest/.test(py)) out.push("pytest -q");
+    if (/ruff/.test(py)) out.push("ruff check .");
+  }
+  if (cargo) out.push("cargo check", "cargo test");
+  if (gomod) out.push("go vet ./...", "go test ./...");
+  return [...new Set(out)];
+}
+
+/**
+ * 0..100. Compost, stakes, fence and mulch are 20 points each, plus 20 × the stake pass rate
+ * over the last 20 stake runs. With no stake runs yet, the four checks scale to 100.
+ */
+export function healthScore(report: SoilReport, stakePassRate?: number): number {
+  const checks = [report.guidance, report.ci, report.tests, report.lint].filter((l) => l.length > 0).length;
+  if (stakePassRate === undefined || Number.isNaN(stakePassRate)) return checks * 25;
+  return Math.round(checks * 20 + 20 * Math.min(1, Math.max(0, stakePassRate)));
+}
+
+type Hygiene = Pick<SoilReport, "guidance" | "ci" | "tests" | "lint" | "stakeCandidates">;
+
+/** The file checks alone (no git). The scheduler reuses the last result when nothing changed. */
+export async function readHygiene(root: string): Promise<Hygiene> {
+  const pkgText = await readText(join(root, "package.json"));
+  let pkg: Pkg = null;
+  try {
+    pkg = pkgText ? JSON.parse(pkgText) : null;
+  } catch {
+    // a broken package.json counts as none
+  }
+  const [guidance, ci, tests, lint, stakeCandidates] = await Promise.all([present(root, GUIDANCE), present(root, CI), findTests(root, pkg), findLint(root, pkg), findStakeCandidates(root, pkg)]);
+  return { guidance, ci, tests, lint, stakeCandidates };
+}
+
+/** Git state only (status + default branch). */
+export async function readGitSoil(root: string): Promise<Pick<SoilReport, "isGitRepo" | "branch" | "dirty" | "ahead" | "behind" | "defaultBranch">> {
+  let status: string | null = null;
+  try {
+    const r = await git(root, ["status", "--porcelain=v1", "-b", "--untracked-files=normal"], { timeoutMs: 15_000 });
+    status = r.code === 0 ? r.stdout : null;
+  } catch {
+    // git missing or the service not ready: not a repo as far as soil goes
+  }
+  if (status === null) return { isGitRepo: false, dirty: 0, ahead: 0, behind: 0 };
+  let def: string | undefined;
+  try {
+    def = (await defaultBranch(root)) ?? undefined;
+  } catch {
+    def = undefined;
+  }
+  return { isGitRepo: true, ...parseStatus(status), defaultBranch: def };
+}
+
+export async function readSoil(root: string, reuse?: Hygiene): Promise<SoilReport> {
+  const checkedAt = Date.now();
+  if (!(await exists(root))) return { exists: false, isGitRepo: false, dirty: 0, ahead: 0, behind: 0, guidance: [], ci: [], tests: [], lint: [], checkedAt };
+  const [gitState, hygiene] = await Promise.all([readGitSoil(root), reuse ?? readHygiene(root)]);
+  return { exists: true, ...gitState, ...hygiene, checkedAt };
 }

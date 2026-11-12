@@ -258,3 +258,90 @@ export function maturity(turns: number): 0 | 1 | 2 | 3 | 4 {
   if (turns <= 7) return 3;
   return 4;
 }
+
+/** At most this many plants stand in a bed's soil; the rest wait in the Seed Catalogue (PLAN D9). */
+export const GROUND_PER_BED = 14;
+const RECENT_MS = 7 * 24 * 3600_000;
+
+/** Why a plant deserves a place in the ground, or null if it belongs in the catalogue. Most urgent first. */
+export function groundReason(p: Plant, now: number): number | null {
+  if (p.archivedAt) return null;
+  if (p.status === "waiting") return 0;
+  if (p.status === "error") return 1;
+  if (p.live || p.status === "thinking" || p.status === "working" || p.queued) return 2;
+  if (p.unread) return 3;
+  if (p.pinned) return 4;
+  if (p.plot === "pot" && ((p.potDirty ?? 0) > 0 || (p.unpushed ?? 0) > 0 || p.pr?.state === "open")) return 5;
+  if (now - p.updatedAt < RECENT_MS) return 6;
+  return null;
+}
+
+/** Splits a bed's plants into the ones drawn in the ground (stable creation order) and the rest. */
+export function groundPlants(plants: Plant[], now: number): { ground: Plant[]; catalogue: Plant[] } {
+  const ranked = plants
+    .map((p) => ({ p, r: groundReason(p, now) }))
+    .filter((x): x is { p: Plant; r: number } => x.r !== null)
+    .sort((a, b) => a.r - b.r || b.p.updatedAt - a.p.updatedAt)
+    .slice(0, GROUND_PER_BED)
+    .map((x) => x.p);
+  const keep = new Set(ranked.map((p) => p.id));
+  ranked.sort((a, b) => a.createdAt - b.createdAt);
+  return { ground: ranked, catalogue: plants.filter((p) => !keep.has(p.id)) };
+}
+
+/** Sort key for "what needs me": permission > question > plan > failed > working > ready > idle (lower first). */
+export function urgency(p: Plant): number {
+  if (p.status === "waiting") return p.ask?.kind === "permission" ? 0 : p.ask?.kind === "question" ? 1 : 2;
+  if (p.status === "error") return 3;
+  if (p.stake?.status === "failing" || p.pr?.checks === "failing") return 4;
+  if (p.status === "thinking" || p.status === "working" || p.queued) return 5;
+  if (p.unread) return 6;
+  return 7;
+}
+
+/** Branch name for a new pot: garden/<slug>-<4hex>. */
+export function potBranch(name: string, hex4: string): string {
+  const slug = name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 32)
+    .replace(/-+$/g, "");
+  return `garden/${slug || "plant"}-${hex4}`;
+}
+
+/**
+ * Permanent garden-grid slot for the k-th bed position: a square spiral around (0,0), which is the greenhouse.
+ * Order (y grows downward): (0,0),(1,0),(1,1),(0,1),(-1,1),(-1,0),(-1,-1),(0,-1),(1,-1),(2,-1),(2,0),(2,1),(2,2),(1,2),…
+ * i.e. right 1, down 1, left 2, up 2, right 3, down 3, … Beds use k ≥ 1.
+ */
+export function spiralSlot(k: number): { x: number; y: number } {
+  let x = 0;
+  let y = 0;
+  let i = 0;
+  const dirs = [
+    [1, 0],
+    [0, 1],
+    [-1, 0],
+    [0, -1],
+  ];
+  for (let run = 1, d = 0; i < k; run++) {
+    for (let rep = 0; rep < 2 && i < k; rep++, d = (d + 1) % 4) {
+      for (let s = 0; s < run && i < k; s++, i++) {
+        x += dirs[d][0];
+        y += dirs[d][1];
+      }
+    }
+  }
+  return { x, y };
+}
+
+/** First free spiral slot (k ≥ 1) not used by any existing bed. */
+export function nextGridSlot(taken: { gridX?: number; gridY?: number }[]): { gridX: number; gridY: number } {
+  const used = new Set(taken.filter((b) => b.gridX !== undefined && b.gridY !== undefined).map((b) => `${b.gridX},${b.gridY}`));
+  for (let k = 1; ; k++) {
+    const s = spiralSlot(k);
+    if (!used.has(`${s.x},${s.y}`)) return { gridX: s.x, gridY: s.y };
+  }
+}

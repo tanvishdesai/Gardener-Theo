@@ -1,0 +1,39 @@
+# Packaging for Gardener (PLAN M8). Windows only for V2.0 (D12).
+#   unsigned local build:  npm run build && GARDENER_UNSIGNED=1 npx electron-builder --win --dir -c electron-builder.yml
+#   release (CI only):     see .github/workflows/release.yml and docs/v2/RELEASE.md
+appId: com.gardener.app
+productName: Gardener
+copyright: Copyright © 2026 Gardener contributors
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**
+  - package.json
+asar: true
+# Electron cannot spawn an executable that lives inside app.asar. The Agent SDK resolves its
+# native Claude Code binary from the platform package (@anthropic-ai/claude-agent-sdk-win32-x64/claude.exe),
+# so that package is unpacked to resources/app.asar.unpacked/. The main process must pass
+# pathToClaudeCodeExecutable with "app.asar" replaced by "app.asar.unpacked" (the SDK is not asar-aware).
+asarUnpack:
+  - node_modules/@anthropic-ai/claude-agent-sdk-*/**
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  # Every .exe (app, unpacked claude.exe, installer, uninstaller) goes through build/sign.cjs,
+  # which calls the CA's cloud signing CLI. See docs/v2/SIGNING.md.
+  signtoolOptions:
+    sign: build/sign.cjs
+    signingHashAlgorithms: [sha256]
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+  artifactName: Gardener-Setup-${version}.${ext}
+publish:
+  provider: github
+  owner: tanvishdesai
+  repo: Gardener-Theo
+  releaseType: draft

@@ -1,0 +1,61 @@
+# Signed Windows release on a version tag (PLAN M8). Checklist: docs/v2/RELEASE.md. Secrets: docs/v2/SIGNING.md.
+name: Release
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # create the draft GitHub Release and upload the installer
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    environment: release # put the signing secrets on this environment and require approval
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: git config --global user.name "Gardener CI" && git config --global user.email "ci@gardener.invalid"
+        shell: bash
+      - name: Tag matches package.json version
+        shell: bash
+        run: test "v$(node -p "require('./package.json').version")" = "${GITHUB_REF_NAME}"
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      # Installs the CA's signing CLI (vendor specific; see docs/v2/SIGNING.md for the SSL.com and DigiCert scripts).
+      - name: Install signing tool
+        if: vars.SIGN_TOOL_SETUP != ''
+        shell: pwsh
+        env:
+          SETUP: ${{ vars.SIGN_TOOL_SETUP }}
+          SM_CLIENT_CERT_FILE_B64: ${{ secrets.SM_CLIENT_CERT_FILE_B64 }}
+        run: Invoke-Expression $env:SETUP
+      - name: Package and sign
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SIGN_TOOL_CMD: ${{ vars.SIGN_TOOL_CMD }}
+          # SSL.com eSigner
+          ES_USERNAME: ${{ secrets.ES_USERNAME }}
+          ES_PASSWORD: ${{ secrets.ES_PASSWORD }}
+          ES_CREDENTIAL_ID: ${{ secrets.ES_CREDENTIAL_ID }}
+          ES_TOTP_SECRET: ${{ secrets.ES_TOTP_SECRET }}
+          # DigiCert KeyLocker
+          SM_HOST: ${{ secrets.SM_HOST }}
+          SM_API_KEY: ${{ secrets.SM_API_KEY }}
+          SM_CLIENT_CERT_FILE: ${{ runner.temp }}\keylocker.p12
+          SM_CLIENT_CERT_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
+          SM_KEYPAIR_ALIAS: ${{ secrets.SM_KEYPAIR_ALIAS }}
+        run: npx electron-builder --win --publish always -c electron-builder.yml
+      - name: Verify signatures
+        shell: pwsh
+        run: |
+          $files = @(Get-ChildItem dist\*.exe) + @(Get-ChildItem dist\win-unpacked -Recurse -Filter *.exe)
+          $bad = $files | Where-Object { (Get-AuthenticodeSignature $_.FullName).Status -ne 'Valid' }
+          $files | ForEach-Object { "{0}  {1}" -f (Get-AuthenticodeSignature $_.FullName).Status, $_.FullName }
+          if ($bad) { throw "Unsigned or invalid: $($bad.FullName -join ', ')" }

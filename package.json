@@ -12,7 +12,12 @@
     "start": "electron-vite preview",
     "demo": "vite --config vite.web.config.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run"
+    "test": "node scripts/test.mjs",
+    "dist": "npm run build && electron-builder --win -c electron-builder.yml",
+    "bench": "node scripts/bench.mjs",
+    "dist:dir": "npm run build && node scripts/dist-dir.mjs",
+    "coldstart": "node scripts/coldstart.mjs",
+    "soak": "node scripts/soak.mjs"
   },
   "license": "MIT",
   "dependencies": {
@@ -27,12 +32,20 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.3.0",
+    "diff2html": "^3.4.56",
     "electron": "^45.2.3",
+    "electron-builder": "^26.18.0",
     "electron-vite": "^6.0.0",
+    "playwright-core": "^1.65.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.7",
     "vitest": "^5.1.0"
-  }
+  },
+  "engines": {
+    "node": ">=22.12"
+  },
+  "author": "Gardener contributors",
+  "repository": "github:tanvishdesai/Gardener-Theo"
 }

@@ -91,8 +91,10 @@ try {
 } finally {
   await app.close().catch(() => {});
   await sleep(1000);
-  // Git marks object files read-only, which Windows refuses to delete.
+  // Git marks object files read-only, which Windows refuses to delete. Files only: 0o666 on a
+  // directory drops its execute bit, and then macOS and Linux can't empty it.
   for (const e of readdirSync(root, { recursive: true, withFileTypes: true })) {
+    if (!e.isFile()) continue;
     try {
       chmodSync(join(e.parentPath, e.name), 0o666);
     } catch {

@@ -47,6 +47,6 @@
   "engines": {
     "node": ">=22.12"
   },
-  "author": "Terrarium contributors",
+  "author": "Tanvish Desai",
   "repository": "github:tanvishdesai/Terrarium-TD"
 }

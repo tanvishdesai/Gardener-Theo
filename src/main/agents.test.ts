@@ -5,7 +5,7 @@ import { join } from "node:path";
 import type { CanUseTool, Options, Query, SDKMessage, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Plant, Weather } from "../shared/types";
-import { Greenhouse, mainCheckoutGuard } from "./agents";
+import { Greenhouse, mainCheckoutGuard, packagedClaudePath } from "./agents";
 import { GardenStore } from "./store";
 
 /** A stand-in for the SDK: each user turn runs `script`, which yields messages and may ask for permission. */
@@ -327,5 +327,23 @@ describe("mainCheckoutGuard", () => {
   it("allows commands inside the pot or that mention neither", async () => {
     expect(await run("npm test")).toEqual({});
     expect(await run("ls C:\\Users\\me\\AppData\\Terrarium\\plots\\repo\\fix-1\\src")).toEqual({});
+  });
+});
+
+describe("packagedClaudePath", () => {
+  const inAsar = (root: string, s: string) => (id: string) => [root, "app.asar", "node_modules", ...id.split("/")].join(s);
+
+  it("points at claude.exe in app.asar.unpacked on Windows", () => {
+    const p = packagedClaudePath(inAsar("C:\\Terrarium\\resources", "\\"), "win32", "x64", "\\");
+    expect(p).toBe("C:\\Terrarium\\resources\\app.asar.unpacked\\node_modules\\@anthropic-ai\\claude-agent-sdk-win32-x64\\claude.exe");
+  });
+
+  it("points at claude (no .exe) on macOS and Linux", () => {
+    expect(packagedClaudePath(inAsar("/Applications/Terrarium.app/Contents/Resources", "/"), "darwin", "arm64", "/")).toBe(
+      "/Applications/Terrarium.app/Contents/Resources/app.asar.unpacked/node_modules/@anthropic-ai/claude-agent-sdk-darwin-arm64/claude",
+    );
+    expect(packagedClaudePath(inAsar("/tmp/.mount_Terr/resources", "/"), "linux", "x64", "/")).toBe(
+      "/tmp/.mount_Terr/resources/app.asar.unpacked/node_modules/@anthropic-ai/claude-agent-sdk-linux-x64/claude",
+    );
   });
 });

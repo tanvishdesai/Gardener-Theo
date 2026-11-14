@@ -1,6 +1,6 @@
 // End-to-end smoke test of the built desktop app (run `npm run build` first): `node scripts/e2e.mjs`.
 // Temp user data and a temp git repo; no Claude turns, no network, no real ~/.claude settings touched.
-// Not part of CI. Exits 1 on the first failed check.
+// Exits 1 on the first failed check.
 import { execFileSync } from "node:child_process";
 import { chmodSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -27,7 +27,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const env = { ...process.env, TERRARIUM_USER_DATA: userData };
 delete env.ELECTRON_RUN_AS_NODE;
-const app = await _electron.launch({ executablePath: join("node_modules", "electron", "dist", process.platform === "win32" ? "electron.exe" : "electron"), args: ["."], env });
+// TERRARIUM_E2E_EXE=<packaged app executable> tests a packaged build instead of out/ (the release workflow does this).
+const packaged = process.env.TERRARIUM_E2E_EXE;
+const app = await _electron.launch(
+  packaged ? { executablePath: packaged, args: [], env } : { executablePath: join("node_modules", "electron", "dist", process.platform === "win32" ? "electron.exe" : "electron"), args: ["."], env },
+);
 const errors = [];
 try {
   await app.evaluate(({ shell }) => {
@@ -40,6 +44,7 @@ try {
   const g = (method, ...args) => win.evaluate(([m, a]) => window.terrarium[m](...a), [method, args]);
 
   check("first run screen on a new garden", (await win.locator(".v2-firstrun").count()) === 1);
+  check("no web-demo Download button in the desktop app", (await win.getByRole("button", { name: "Download", exact: true }).count()) === 0);
   await g("setSettings", { onboarded: true });
   await win.keyboard.press("Escape");
 

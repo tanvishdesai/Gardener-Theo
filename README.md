@@ -6,6 +6,8 @@ Every **repository is a bed**. Every **agent is a plant** growing in it. **You a
 
 ![The demo garden at midday](docs/garden.png)
 
+**[Try it in your browser](https://terrarium-td.vercel.app)** · **[Download for Windows / macOS / Linux](https://github.com/tanvishdesai/Terrarium-TD/releases/latest)**
+
 The idea comes from Theo's "we're not really engineers anymore" argument. The job shifts from growing code to building the environment code grows well in: the right fertilizer (guidance), stakes to grow against (fast CI checks), and constant weeding (slop grows faster than weeds). Most "agents in a game world" UIs put agents in an office or a fantasy village. A garden fits better, because the thing you are really tending is the repo, not the agents.
 
 ## The look
@@ -196,6 +198,6 @@ CI (`.github/workflows/ci.yml`) gates on Windows; macOS and Linux run the typech
 
 ## Not done yet
 
-- **A signed release.** `npm run dist` is ready but needs the OV code-signing certificate described in [docs/v2/SIGNING.md](docs/v2/SIGNING.md). Until then, `npm run dist:dir` makes an unsigned build.
-- **macOS and Linux packages.** V2.0 ships on Windows first; the code stays cross-platform.
+- **Signed builds.** The [releases](https://github.com/tanvishdesai/Terrarium-TD/releases/latest) are unsigned for now (the release notes say how to open them). Signed Windows builds need the OV code-signing certificate described in [docs/v2/SIGNING.md](docs/v2/SIGNING.md); the workflow for them is ready (`release.yml`, on `v*-signed` tags).
+- **macOS and Linux are an unsigned beta.** Apple Silicon (`.dmg`) and Linux x64 (`.AppImage`) builds are on the releases page but lightly tested so far.
 - **Pull requests on hosts other than GitHub.** Terrarium stops after the push there.

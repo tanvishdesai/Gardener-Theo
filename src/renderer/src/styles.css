@@ -2145,6 +2145,25 @@ a.chip:hover {
     display: inline;
   }
 }
+/* The web demo's top bar carries two more buttons (Download, GitHub): below 1440px it uses the compact
+   chips and wraps like the larger-text layout, instead of squeezing the chips to a few letters. */
+@media (max-width: 1440px) {
+  .topbar--demo {
+    flex-wrap: wrap;
+    row-gap: 4px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+  .topbar--demo .topbar__info {
+    flex: 1 1 160px;
+  }
+  .topbar--demo .chip__long {
+    display: none;
+  }
+  .topbar--demo .chip__short {
+    display: inline;
+  }
+}
 
 @media (max-height: 700px) {
   .tabpanel {

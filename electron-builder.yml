@@ -1,9 +1,11 @@
-# Packaging for Terrarium (PLAN M8). Windows only for V2.0 (D12).
+# Packaging for Terrarium (PLAN M8). Windows (NSIS x64), macOS (DMG arm64) and Linux (AppImage x64).
+# Each OS is built on its own runner: npm installs only that machine's Agent SDK binary package.
 #   unsigned local build:  npm run build && TERRARIUM_UNSIGNED=1 npx electron-builder --win --dir -c electron-builder.yml
-#   release (CI only):     see .github/workflows/release.yml and docs/v2/RELEASE.md
+#   unsigned release:      .github/workflows/release-unsigned.yml (tags v*)
+#   signed Windows release: .github/workflows/release.yml (tags v*-signed) and docs/v2/RELEASE.md
 appId: com.terrarium.app
 productName: Terrarium
-copyright: Copyright © 2026 Terrarium contributors
+copyright: Copyright © 2026 Tanvish Desai
 directories:
   output: dist
   buildResources: build
@@ -12,7 +14,7 @@ files:
   - package.json
 asar: true
 # Electron cannot spawn an executable that lives inside app.asar. The Agent SDK resolves its
-# native Claude Code binary from the platform package (@anthropic-ai/claude-agent-sdk-win32-x64/claude.exe),
+# native Claude Code binary from the platform package (@anthropic-ai/claude-agent-sdk-<platform>-<arch>/claude[.exe]),
 # so that package is unpacked to resources/app.asar.unpacked/. The main process must pass
 # pathToClaudeCodeExecutable with "app.asar" replaced by "app.asar.unpacked" (the SDK is not asar-aware).
 asarUnpack:
@@ -31,9 +33,29 @@ nsis:
   perMachine: false
   allowToChangeInstallationDirectory: true
   deleteAppDataOnUninstall: false
-  artifactName: Terrarium-Setup-${version}.${ext}
+  # Version-free names keep the releases/latest/download/... links stable (the web demo links to them).
+  artifactName: Terrarium-Setup-x64.${ext}
+mac:
+  target:
+    - target: dmg
+      arch: [arm64]
+  category: public.app-category.developer-tools
+  # Ad-hoc signature: unsigned arm64 apps don't launch at all. Not notarized, so Gatekeeper still warns.
+  # Hardened runtime off: with an ad-hoc identity it would need extra entitlements to load Electron's frameworks.
+  identity: "-"
+  hardenedRuntime: false
+  notarize: false
+dmg:
+  artifactName: Terrarium-mac-arm64.${ext}
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+  category: Development
+appImage:
+  artifactName: Terrarium-linux-x86_64.${ext}
 publish:
   provider: github
   owner: tanvishdesai
   repo: Terrarium-TD
-  releaseType: draft
+  releaseType: release

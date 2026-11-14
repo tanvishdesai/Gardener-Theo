@@ -1233,3 +1233,49 @@
     display: none;
   }
 }
+
+/* Web demo: Download window (TopBar.tsx). */
+.download p {
+  margin: 0;
+}
+
+.download__btn {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  padding: 8px 14px;
+  font-size: calc(15px * var(--text));
+}
+
+.download__detail {
+  font-size: calc(12px * var(--text));
+  opacity: 0.85;
+}
+
+.download__note {
+  font-size: calc(13px * var(--text));
+  color: var(--muted);
+}
+
+.download__others {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.download__others .btn {
+  flex: 1 1 200px;
+}
+
+.download a:not(.btn) {
+  color: var(--fg);
+}
+
+.download__foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 2px solid var(--ink);
+}

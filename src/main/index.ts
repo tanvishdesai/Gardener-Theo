@@ -6,9 +6,9 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { createRequire } from "node:module";
-import { basename, join, resolve, sep } from "node:path";
+import { basename, join, resolve } from "node:path";
 import type { AskResponse, Bed, CommitMessage, DiffScope, FirstRunCheck, GardenApi, GardenEvent, PermissionMode, Plant, Settings, SowRequest, Weather } from "../shared/types";
-import { Greenhouse } from "./agents";
+import { Greenhouse, packagedClaudePath } from "./agents";
 import * as git from "./git";
 import { Harvest } from "./harvest";
 import { countHistory, importHistory, plantable } from "./history";
@@ -130,14 +130,11 @@ function hookToken(): string {
   return t;
 }
 
-/** In the packaged app, claude.exe lives in app.asar.unpacked (executables can't run from inside the archive). */
+/** In the packaged app, the Claude Code binary lives in app.asar.unpacked (executables can't run from inside the archive). */
 function claudeExecutable(): string | undefined {
   if (!app.isPackaged) return undefined;
   try {
-    const req = createRequire(import.meta.url);
-    const pkg = `@anthropic-ai/claude-agent-sdk-${process.platform}-${process.arch}`;
-    const exe = req.resolve(`${pkg}/${process.platform === "win32" ? "claude.exe" : "claude"}`);
-    return exe.replace(`app.asar${sep}`, `app.asar.unpacked${sep}`);
+    return packagedClaudePath(createRequire(import.meta.url).resolve);
   } catch (err) {
     console.error("[terrarium] could not locate the Claude Code binary", err);
     return undefined;

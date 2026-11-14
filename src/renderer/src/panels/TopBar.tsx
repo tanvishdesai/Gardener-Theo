@@ -1,8 +1,65 @@
+import { useState } from "react";
 import type { Plant, PoolInfo, Weather } from "../../../shared/types";
 import { focus, getState, isGrowing, isHarvest, nextNeedingYou, openSow, setState, setView, useGarden } from "../store";
+import { Window } from "./v2/ui";
 
 /** Where the demo sends people for the source and the desktop app. Keep in step with the git remote. */
 const GITHUB_URL = "https://github.com/tanvishdesai/Terrarium-TD";
+
+const RELEASES_URL = `${GITHUB_URL}/releases/latest`;
+
+/** Desktop builds on the latest GitHub Release. Version-free names (electron-builder.yml) keep these links stable. */
+const DOWNLOADS = [
+  { os: "windows", name: "Windows", detail: "10 / 11, x64 installer", file: "Terrarium-Setup-x64.exe", note: 'Unsigned: SmartScreen says "Windows protected your PC". Click More info, then Run anyway.' },
+  { os: "mac", name: "macOS", detail: "Apple Silicon", file: "Terrarium-mac-arm64.dmg", note: "Unsigned: open it once, then System Settings, Privacy & Security, Open Anyway." },
+  { os: "linux", name: "Linux", detail: "x64 AppImage", file: "Terrarium-linux-x86_64.AppImage", note: "Unsigned: chmod +x the AppImage, then run it." },
+] as const;
+
+function visitorOs(): (typeof DOWNLOADS)[number]["os"] {
+  const p = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform || navigator.userAgent;
+  if (/win/i.test(p)) return "windows";
+  if (/mac|iphone|ipad/i.test(p)) return "mac";
+  return /linux|x11|cros/i.test(p) ? "linux" : "windows";
+}
+
+/** The web demo's way to the desktop app: the visitor's OS first, the other two below. */
+function DownloadWindow({ onClose }: { onClose(): void }) {
+  const os = visitorOs();
+  const mine = DOWNLOADS.find((d) => d.os === os)!;
+  const others = DOWNLOADS.filter((d) => d !== mine);
+  const link = (d: (typeof DOWNLOADS)[number], primary: boolean) => (
+    <a key={d.os} className={`btn download__btn ${primary ? "btn--primary" : "btn--ghost"}`} href={`${GITHUB_URL}/releases/latest/download/${d.file}`}>
+      <span>Download for {d.name}</span>
+      <span className="download__detail">{d.detail}</span>
+    </a>
+  );
+  return (
+    <Window title="Get Terrarium" sub="The desktop app, for your own repos" onClose={onClose}>
+      <div className="v2-scroll download">
+        {link(mine, true)}
+        <p className="download__note">{mine.note}</p>
+        <div className="download__others">{others.map((d) => link(d, false))}</div>
+        <p>Needs Claude Code installed and logged in.</p>
+        <p>
+          <a href={RELEASES_URL} target="_blank" rel="noreferrer">
+            All releases & install notes
+          </a>
+        </p>
+        <p className="download__foot">
+          <a href={GITHUB_URL} target="_blank" rel="noreferrer">
+            ★ Star on GitHub
+          </a>
+          <span>
+            Built by{" "}
+            <a href="https://tanvish-port.vercel.app" target="_blank" rel="noreferrer">
+              Tanvish Desai
+            </a>
+          </span>
+        </p>
+      </div>
+    </Window>
+  );
+}
 
 let lastCycled: string | undefined;
 
@@ -63,9 +120,10 @@ export function TopBar({ onAddBed }: { onAddBed(): void }) {
   const settings = useGarden((s) => s.view.settings);
   const sky = weatherLabel(weather);
   const pots = poolLabel(pool);
+  const [download, setDownload] = useState(false);
 
   return (
-    <header className="topbar">
+    <header className={`topbar ${demo ? "topbar--demo" : ""}`}>
       <div className="brand">
         <svg width="24" height="24" viewBox="0 0 12 12" shapeRendering="crispEdges" aria-hidden>
           <path fill="#2b2233" d="M5 4h2v8H5zM1 2h3v1H1zM0 3h1v2H0zM1 5h3v1H1zM4 3h1v2H4zM8 1h3v1H8zM11 2h1v2h-1zM8 4h3v1H8zM7 2h1v2H7z" />
@@ -130,12 +188,19 @@ export function TopBar({ onAddBed }: { onAddBed(): void }) {
         <button className="btn btn--primary" onClick={() => openSow(getState().selection?.kind === "bed" ? getState().selection!.id : "")} disabled={!hasBeds}>
           Sow
         </button>
+        {/* btn--github: demo-only, and the promo capture overlays hide that class */}
+        {demo && (
+          <button className="btn btn--github" onClick={() => setDownload(true)} aria-haspopup="dialog" title="Get the desktop app for Windows, macOS or Linux">
+            Download
+          </button>
+        )}
         {demo && (
           <a className="btn btn--github" href={GITHUB_URL} target="_blank" rel="noreferrer" title="View source and download the desktop app on GitHub">
             ★ GitHub
           </a>
         )}
       </div>
+      {download && <DownloadWindow onClose={() => setDownload(false)} />}
     </header>
   );
 }

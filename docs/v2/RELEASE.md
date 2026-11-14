@@ -18,13 +18,13 @@ Certificate: OV, cloud HSM. Expires **YYYY-MM-DD**; start renewing 30 days befor
 
 ## Tag
 
-- [ ] `git tag vX.Y.Z && git push origin vX.Y.Z`. The tag must equal `v` + `package.json` version, or the workflow stops.
+- [ ] `git tag vX.Y.Z-signed && git push origin vX.Y.Z-signed`. The tag must equal `v` + `package.json` version + `-signed`, or the workflow stops. (Plain `vX.Y.Z` tags run the unsigned three-platform workflow, `release-unsigned.yml`.)
 - [ ] Approve the `release` environment deployment in Actions.
 - [ ] The workflow runs typecheck, tests, build, package, signs every `.exe`, and runs the `Get-AuthenticodeSignature` step. All must pass.
 
 ## After the workflow
 
-- [ ] Download `Terrarium-Setup-X.Y.Z.exe` from the **draft** release on a clean Windows VM (no dev tools):
+- [ ] Download `Terrarium-Setup-x64.exe` from the **draft** release on a clean Windows VM (no dev tools):
   - [ ] Installs per user, with no admin prompt. The install folder can be changed.
   - [ ] The signature shows the organization name (Properties → Digital Signatures).
   - [ ] SmartScreen behaviour is as expected (see SIGNING.md).
@@ -36,4 +36,4 @@ Certificate: OV, cloud HSM. Expires **YYYY-MM-DD**; start renewing 30 days befor
 
 ## If something is wrong
 
-- Delete the draft release and the tag (`git push --delete origin vX.Y.Z`), fix the problem, and bump the patch version. Never re-sign or re-upload under a published version.
+- Delete the draft release and the tag (`git push --delete origin vX.Y.Z-signed`), fix the problem, and bump the patch version. Never re-sign or re-upload under a published version.

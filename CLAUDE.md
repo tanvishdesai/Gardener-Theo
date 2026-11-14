@@ -7,7 +7,8 @@ Electron + React app that draws Claude Code agents as plants in a garden. Repos 
 - `npm run dev`: run the desktop app with hot reload
 - `npm run demo`: renderer only, in a browser at localhost:5199, with simulated agents (`src/renderer/src/demo.ts`). Use this to check UI changes; `?phase=night|dawn|dusk|day` forces the sky.
 - `npm run typecheck`, `npm test`, `npm run build`: run all three before you call a change done. `npm test` runs vitest on Electron's Node (needed for `node:sqlite` + FTS5); `npm test -- <path>` runs one file.
-- `node scripts/e2e.mjs` (after `npm run build`): smoke test of the real desktop app on temp data (add bed, sow, catalogue, palette, settings). No Claude turns, not in CI.
+- `node scripts/e2e.mjs` (after `npm run build`): smoke test of the real desktop app on temp data (add bed, sow, catalogue, palette, settings). No Claude turns. `TERRARIUM_E2E_EXE=<packaged executable>` runs it on a packaged build instead.
+- Releases: a `v*` tag runs `.github/workflows/release-unsigned.yml` (Windows/macOS/Linux, each on its own runner; notes from `docs/releases/<tag>.md`). `v*-signed` tags run the signed Windows `release.yml`.
 - `npm run bench`: 1,000-plant frame-time benchmark in headless Edge (budget p95 ≤ 16 ms; baseline in `bench/baseline.json`).
 - `npm run coldstart` (after `npm run build`): cold start to an interactive 1,000-plant garden, median of 5 launches (budget ≤ 1.5 s).
 - `npm run soak`: 30 fake agents streaming through the real Greenhouse → store → event queue; checks event-loop p99 ≤ 50 ms and IPC ≤ 60 msg/s. runs alone (skipped by `npm test`, since parallel test files would skew the timing); 5 s by default, `SOAK_SECONDS=600` for the full 10-minute soak.

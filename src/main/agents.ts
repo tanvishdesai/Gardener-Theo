@@ -10,7 +10,7 @@ import { spawn } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { copyFile, mkdir, readFile } from "node:fs/promises";
-import { basename, dirname, isAbsolute, join, normalize } from "node:path";
+import { basename, dirname, isAbsolute, join, normalize, sep } from "node:path";
 import {
   forkSession,
   query,
@@ -131,11 +131,21 @@ export interface AgentHooks {
   plotsRoot?: string;
   pool?: PoolLike;
   idleMinutes?(): number;
-  /** The packaged app must point the SDK at claude.exe outside the asar archive. */
+  /** The packaged app must point the SDK at the Claude Code binary outside the asar archive. */
   claudeExecutable?: string;
   /** Swap in fakes for tests; default to the Agent SDK. */
   query?: typeof query;
   forkSession?: typeof forkSession;
+}
+
+/**
+ * The SDK's native Claude Code binary in a packaged app (`claude.exe` on Windows, `claude` elsewhere).
+ * `resolve` finds it inside app.asar, but executables can't run from the archive, so point at the
+ * copy electron-builder unpacks to app.asar.unpacked (asarUnpack in electron-builder.yml).
+ */
+export function packagedClaudePath(resolve: (id: string) => string, platform: string = process.platform, arch: string = process.arch, pathSep: string = sep): string {
+  const exe = resolve(`@anthropic-ai/claude-agent-sdk-${platform}-${arch}/claude${platform === "win32" ? ".exe" : ""}`);
+  return exe.replace(`app.asar${pathSep}`, `app.asar.unpacked${pathSep}`);
 }
 
 const userTurn = (text: string): SDKUserMessage => ({

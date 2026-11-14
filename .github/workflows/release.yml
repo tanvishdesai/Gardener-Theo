@@ -1,8 +1,9 @@
-# Signed Windows release on a version tag (PLAN M8). Checklist: docs/v2/RELEASE.md. Secrets: docs/v2/SIGNING.md.
+# Signed Windows release (PLAN M8). Checklist: docs/v2/RELEASE.md. Secrets: docs/v2/SIGNING.md.
+# Runs on v*-signed tags (v1.2.0-signed) so it never fires together with release-unsigned.yml, which takes plain v* tags.
 name: Release
 on:
   push:
-    tags: ["v*"]
+    tags: ["v*-signed"]
 
 permissions:
   contents: write # create the draft GitHub Release and upload the installer
@@ -22,7 +23,7 @@ jobs:
         shell: bash
       - name: Tag matches package.json version
         shell: bash
-        run: test "v$(node -p "require('./package.json').version")" = "${GITHUB_REF_NAME}"
+        run: test "v$(node -p "require('./package.json').version")-signed" = "${GITHUB_REF_NAME}"
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
@@ -51,7 +52,7 @@ jobs:
           SM_CLIENT_CERT_FILE: ${{ runner.temp }}\keylocker.p12
           SM_CLIENT_CERT_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
           SM_KEYPAIR_ALIAS: ${{ secrets.SM_KEYPAIR_ALIAS }}
-        run: npx electron-builder --win --publish always -c electron-builder.yml
+        run: npx electron-builder --win --publish always -c electron-builder.yml -c.publish.releaseType=draft
       - name: Verify signatures
         shell: pwsh
         run: |

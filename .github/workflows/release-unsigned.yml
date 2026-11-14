@@ -1,0 +1,99 @@
+# Unsigned Windows / macOS / Linux release on a version tag (v0.1.0, ...). Release notes: docs/releases/<tag>.md.
+# Each OS builds on its own runner: npm installs only that machine's Agent SDK binary package, so no cross-compiling.
+# The release starts as a draft and is published only after every installer passed its smoke test and was uploaded,
+# so the releases/latest/download/... links the web demo uses never point at a release with missing files.
+# The signed Windows workflow (release.yml) runs on v*-signed tags instead, so the two never fire together.
+name: Release (unsigned)
+on:
+  push:
+    tags: ["v*", "!v*-signed"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-unsigned-${{ github.ref }}
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        run: echo "tag=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Tag matches package.json version
+        if: github.event_name == 'push'
+        run: test "${{ steps.v.outputs.tag }}" = "$GITHUB_REF_NAME"
+      - name: Create the draft release (an existing one is kept, so re-runs work)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.v.outputs.tag }}
+        run: gh release view "$TAG" > /dev/null 2>&1 || gh release create "$TAG" --draft --target "$GITHUB_SHA" --title "Terrarium $TAG" --notes-file "docs/releases/$TAG.md"
+
+  package:
+    needs: draft
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: --win
+            app: dist/win-unpacked/Terrarium.exe
+            claude: dist/win-unpacked/resources/app.asar.unpacked/node_modules/@anthropic-ai/claude-agent-sdk-win32-x64/claude.exe
+            installer: dist/Terrarium-Setup-x64.exe
+          - os: macos-latest # Apple Silicon
+            target: --mac
+            app: dist/mac-arm64/Terrarium.app/Contents/MacOS/Terrarium
+            claude: dist/mac-arm64/Terrarium.app/Contents/Resources/app.asar.unpacked/node_modules/@anthropic-ai/claude-agent-sdk-darwin-arm64/claude
+            installer: dist/Terrarium-mac-arm64.dmg
+          - os: ubuntu-latest
+            target: --linux
+            app: dist/linux-unpacked/terrarium
+            claude: dist/linux-unpacked/resources/app.asar.unpacked/node_modules/@anthropic-ai/claude-agent-sdk-linux-x64/claude
+            installer: dist/Terrarium-linux-x86_64.AppImage
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      # Git-service and soil tests (and the smoke test) make commits in temporary repos.
+      - run: git config --global user.name "Terrarium CI" && git config --global user.email "ci@terrarium.invalid"
+      - name: Virtual display for the Linux smoke test
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Package (unsigned)
+        env:
+          TERRARIUM_UNSIGNED: "1" # build/sign.cjs skips Windows signing; signed builds use release.yml
+        run: npx electron-builder ${{ matrix.target }} --publish never -c electron-builder.yml
+      - name: Claude Code binary runs from app.asar.unpacked
+        run: '"${{ matrix.claude }}" --version'
+      - name: Desktop smoke test on the packaged app
+        env:
+          TERRARIUM_E2E_EXE: ${{ github.workspace }}/${{ matrix.app }}
+        run: ${{ runner.os == 'Linux' && 'xvfb-run -a ' || '' }}node scripts/e2e.mjs
+      - name: Upload the installer to the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ needs.draft.outputs.tag }}" "${{ matrix.installer }}" --clobber
+
+  publish:
+    needs: [draft, package]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "${{ needs.draft.outputs.tag }}" -R "$GITHUB_REPOSITORY" --draft=false --latest

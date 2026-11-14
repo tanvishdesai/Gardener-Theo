@@ -1,5 +1,8 @@
 // End-to-end smoke test of the built desktop app (run `npm run build` first): `node scripts/e2e.mjs`.
-// Temp user data and a temp git repo; no Claude turns, no network, no real ~/.claude settings touched.
+// Temp user data and a temp git repo; no real ~/.claude settings touched.
+// Live Claude turn (one tiny prompt on Haiku) only when asked:
+//   CLAUDE_CODE_OAUTH_TOKEN=<token from `claude setup-token`>  CI: uses the token and a temp Claude config folder.
+//   TERRARIUM_E2E_LIVE=1                                        locally: uses your own Claude Code login.
 // Exits 1 on the first failed check.
 import { execFileSync } from "node:child_process";
 import { chmodSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
@@ -27,6 +30,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const env = { ...process.env, TERRARIUM_USER_DATA: userData };
 delete env.ELECTRON_RUN_AS_NODE;
+const live = !!(process.env.CLAUDE_CODE_OAUTH_TOKEN || process.env.TERRARIUM_E2E_LIVE);
+// With a token, Claude Code needs no stored login, so keep its transcripts out of the real ~/.claude.
+if (process.env.CLAUDE_CODE_OAUTH_TOKEN) env.CLAUDE_CONFIG_DIR = join(root, "claude");
 // TERRARIUM_E2E_EXE=<packaged app executable> tests a packaged build instead of out/ (the release workflow does this).
 const packaged = process.env.TERRARIUM_E2E_EXE;
 const app = await _electron.launch(
@@ -85,6 +91,20 @@ try {
   await win.keyboard.press("Escape");
 
   await g("uproot", plant.id, { deleteBranch: true });
+
+  if (live) {
+    // The one thing the fakes can't prove: the bundled Claude Code starts and finishes a real turn here.
+    const seed = await g("sow", { bedId: bed.id, prompt: "Reply with just the word ok. Do not use any tools.", permissionMode: "default", name: "Canary", model: "haiku", plot: "bed" });
+    let c;
+    for (let i = 0; i < 240 && !(c?.turns >= 1 && c.status === "idle") && c?.status !== "error" && c?.status !== "waiting"; i++) {
+      await sleep(500);
+      c = (await g("snapshot")).plants.find((x) => x.id === seed.id);
+    }
+    check("a real Claude turn completes", c?.turns >= 1 && c.status === "idle" && !!c.lastText, c ? `${c.status}, ${c.turns} turn(s), said ${JSON.stringify(c.lastText ?? c.error ?? "")}` : "no plant");
+    await g("uproot", seed.id, {});
+  } else {
+    console.log("skip live Claude turn (set CLAUDE_CODE_OAUTH_TOKEN or TERRARIUM_E2E_LIVE=1)");
+  }
   check("no renderer errors", errors.length === 0, errors.join(" | "));
 } catch (err) {
   check("script ran", false, String(err));

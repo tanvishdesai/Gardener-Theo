@@ -3,6 +3,8 @@
 # The release starts as a draft and is published only after every installer passed its smoke test and was uploaded,
 # so the releases/latest/download/... links the web demo uses never point at a release with missing files.
 # The signed Windows workflow (release.yml) runs on v*-signed tags instead, so the two never fire together.
+# Run it by hand (workflow_dispatch) to build and test all three without touching any release.
+# Secret CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`): the smoke test then runs one real Claude turn per OS.
 name: Release (unsigned)
 on:
   push:
@@ -28,6 +30,7 @@ jobs:
         if: github.event_name == 'push'
         run: test "${{ steps.v.outputs.tag }}" = "$GITHUB_REF_NAME"
       - name: Create the draft release (an existing one is kept, so re-runs work)
+        if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.v.outputs.tag }}
@@ -80,17 +83,20 @@ jobs:
         run: npx electron-builder ${{ matrix.target }} --publish never -c electron-builder.yml
       - name: Claude Code binary runs from app.asar.unpacked
         run: '"${{ matrix.claude }}" --version'
-      - name: Desktop smoke test on the packaged app
+      - name: Desktop smoke test on the packaged app, with a real Claude turn
         env:
           TERRARIUM_E2E_EXE: ${{ github.workspace }}/${{ matrix.app }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: ${{ runner.os == 'Linux' && 'xvfb-run -a ' || '' }}node scripts/e2e.mjs
       - name: Upload the installer to the draft release
+        if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "${{ needs.draft.outputs.tag }}" "${{ matrix.installer }}" --clobber
 
   publish:
     needs: [draft, package]
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Publish the release
